@@ -29,6 +29,7 @@ class ActiveSpecialistBadge(BaseModel):
     role: str
     domain: str
     icon: str
+    chibi: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatRequest(BaseModel):
@@ -70,11 +71,22 @@ class ChatResponse(BaseModel):
     provider: str
     model: str
     active_specialists: List[ActiveSpecialistBadge] = Field(default_factory=list)
+    monthly_trends_applied: List[Dict[str, Any]] = Field(default_factory=list)
     tool_calls: List[ToolCallStep] = Field(default_factory=list)
     retrieved_context: List[RetrievedContextItem] = Field(default_factory=list)
     memories_saved: List[str] = Field(default_factory=list)
     latency_ms: float
     usage: Dict[str, int] = Field(default_factory=dict)
+
+
+class TrendCreateRequest(BaseModel):
+    agent_id: str = Field(default="auto_router")
+    domain: str = Field(default="webapp", description="'webapp' | 'game' | 'core' | 'orchestrator'")
+    trend_title: str = Field(..., min_length=3)
+    trend_summary: str = Field(..., min_length=5)
+    trend_tags: List[str] = Field(default_factory=list)
+    momentum_score: int = Field(default=90, ge=1, le=100)
+    month_key: Optional[str] = None
 
 
 class SpecialistCreateRequest(BaseModel):

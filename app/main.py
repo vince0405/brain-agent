@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.agent.orchestrator import brain_agent
 from app.agent.specialists import specialist_registry
+from app.agent.trends import trend_learner
 from app.config import settings
 from app.database import db
 from app.memory.store import memory_store, session_store
@@ -31,6 +32,7 @@ from app.schemas import (
     MemoryCreateRequest,
     RuntimeConfigUpdateRequest,
     SpecialistCreateRequest,
+    TrendCreateRequest,
 )
 from app.tools.registry import tool_registry
 
@@ -180,6 +182,8 @@ async def system_status() -> Dict[str, Any]:
             "configured": bool(settings.supabase_anon_key or settings.supabase_service_role_key),
         },
         "specialists_count": len(specialist_registry.list_agents()),
+        "monthly_trends_count": len(trend_learner.list_trends()),
+        "current_trend_month": trend_learner.current_month_key(),
         "tools_registered": len(tool_registry.list_tools()),
     }
 
@@ -431,6 +435,43 @@ async def create_specialist(req: SpecialistCreateRequest) -> Dict[str, Any]:
 async def delete_specialist(agent_id: str) -> Dict[str, Any]:
     deleted = specialist_registry.delete_custom_agent(agent_id=agent_id)
     return {"deleted": deleted, "agent_id": agent_id}
+
+
+# ============================================================================
+# Monthly Trend Learning Endpoints (Strictly Industry & Tech Trends Only)
+# ============================================================================
+@app.get("/api/v1/trends", dependencies=[Depends(verify_api_key)], tags=["Monthly Trends"])
+async def list_monthly_trends(
+    month_key: Optional[str] = None,
+    domain: Optional[str] = None,
+    agent_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    trends = trend_learner.list_trends(month_key=month_key, domain=domain, agent_id=agent_id)
+    return {
+        "current_month": trend_learner.current_month_key(),
+        "policy": "strictly_trends_only",
+        "count": len(trends),
+        "trends": trends,
+    }
+
+
+@app.post("/api/v1/trends/sync", dependencies=[Depends(verify_api_key)], tags=["Monthly Trends"])
+async def sync_monthly_trends(month_key: Optional[str] = None) -> Dict[str, Any]:
+    return trend_learner.ensure_current_month_synced(month_key=month_key)
+
+
+@app.post("/api/v1/trends", dependencies=[Depends(verify_api_key)], tags=["Monthly Trends"])
+async def add_monthly_trend(req: TrendCreateRequest) -> Dict[str, Any]:
+    trend = trend_learner.add_trend(
+        agent_id=req.agent_id,
+        domain=req.domain,
+        trend_title=req.trend_title,
+        trend_summary=req.trend_summary,
+        trend_tags=req.trend_tags,
+        momentum_score=req.momentum_score,
+        month_key=req.month_key,
+    )
+    return {"trend": trend}
 
 
 # ============================================================================

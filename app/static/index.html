@@ -28,8 +28,12 @@
           <span>💬</span> Agent Chat Studio
         </button>
         <button class="nav-btn" data-tab="specialists">
-          <span>🤖</span> Specialist Agents
+          <span>🏡</span> Chibi Village & Agents
           <span class="badge" id="navSpecCount">8</span>
+        </button>
+        <button class="nav-btn" data-tab="trends">
+          <span>📈</span> Monthly Trend Pulse
+          <span class="badge" id="navTrendCount">8</span>
         </button>
         <button class="nav-btn" data-tab="memory">
           <span>🧬</span> Long-Term Memory
@@ -98,6 +102,24 @@
             <input type="text" id="userIdInput" class="input-compact" value="default_user" title="Active User / Tenant ID" placeholder="user_id" />
           </div>
         </header>
+
+        <!-- LIVE CHIBI VILLAGE STAGE (HOUSE BUILDERS + FARM WORKERS) -->
+        <div class="chibi-village-bar" id="chibiVillageBar">
+          <div class="village-zone house-zone">
+            <div class="zone-header">
+              <span>🏡 <strong>House Construction Site</strong> (Web App Crew)</span>
+              <span class="zone-progress" id="houseProgressLabel">Stage: Framing & Solar Roof</span>
+            </div>
+            <div class="chibi-stage-row" id="houseChibiStage"></div>
+          </div>
+          <div class="village-zone farm-zone">
+            <div class="zone-header">
+              <span>🌾 <strong>Cozy Harvest Farm</strong> (Game Studio & QA Crew)</span>
+              <span class="zone-progress" id="farmProgressLabel">Season: Golden Harvest</span>
+            </div>
+            <div class="chibi-stage-row" id="farmChibiStage"></div>
+          </div>
+        </div>
 
         <div class="chat-messages" id="chatMessages">
           <div class="welcome-card">
@@ -181,6 +203,69 @@
               <button class="btn-xs" id="refreshSpecialistsBtn">↻ Refresh</button>
             </div>
             <div id="specialistsList" class="item-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: MONTHLY TREND PULSE (STRICTLY TRENDS) -->
+      <section class="tab-pane" id="tab-trends">
+        <header class="pane-header">
+          <div>
+            <h1>📈 Monthly Trend Learning Engine (Strictly Trends)</h1>
+            <p class="subtitle">Every month (YYYY-MM), each Chibi Specialist learns pure Web App, Postgres, and Game Dev industry trends — zero personal data</p>
+          </div>
+          <div class="header-controls">
+            <span class="tag-pill" id="activeTrendMonthBadge">Month: 2026-11</span>
+            <button class="btn-primary" id="syncMonthlyTrendsBtn">↻ Sync This Month's Trends</button>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Teach a New Monthly Trend</h3>
+            <p class="small-muted">Policy: <strong>Strictly Trends Only</strong> (architecture, UI patterns, Postgres indexing, or gameplay mechanics).</p>
+            <form id="addTrendForm" class="stack-form">
+              <label>Specialist Agent</label>
+              <select id="trendAgentId">
+                <option value="webapp_architect">🏗️ Milo (Web App Architect)</option>
+                <option value="frontend_ui_agent">🎨 Luna (Frontend & UI/UX)</option>
+                <option value="backend_supabase_agent">⚡ Volt (Backend & Supabase)</option>
+                <option value="game_designer">🎮 Pip (Game Designer)</option>
+                <option value="game_engine_coder">🕹️ Torque (Game Engine Coder)</option>
+                <option value="game_world_narrative">🗺️ Melody (Game World & Narrative)</option>
+                <option value="qa_security_agent">🛡️ Bramble (QA & Security)</option>
+                <option value="auto_router">🧠 Captain Sprout (Orchestrator)</option>
+              </select>
+
+              <label>Domain</label>
+              <select id="trendDomain">
+                <option value="webapp">Web App Trend (webapp)</option>
+                <option value="game">Game Dev Trend (game)</option>
+                <option value="core">Postgres / QA Trend (core)</option>
+              </select>
+
+              <label>Trend Title</label>
+              <input type="text" id="trendTitle" placeholder="e.g., WebGPU Compute Shaders for 2D Particle Farms" required />
+
+              <label>Momentum Score (1-100)</label>
+              <input type="number" id="trendScore" value="94" min="1" max="100" />
+
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="trendTags" placeholder="webgpu, particles, 60fps" />
+
+              <label>Trend Summary (How the Agent Applies It)</label>
+              <textarea id="trendSummary" rows="4" placeholder="Describe the industry/technical trend..." required></textarea>
+
+              <button type="submit" class="btn-primary">Save Monthly Trend</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <h3>Learned Monthly Trends</h3>
+              <span class="tag-pill">Strictly Trends Only</span>
+            </div>
+            <div id="trendsList" class="item-list"></div>
           </div>
         </div>
       </section>

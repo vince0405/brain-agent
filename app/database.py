@@ -78,6 +78,24 @@ class DatabaseManager:
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id, importance DESC);
+                CREATE INDEX IF NOT EXISTS idx_memories_user_cat_imp ON memories(user_id, category, importance DESC, updated_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_memories_core_partial ON memories(user_id, updated_at DESC) WHERE importance >= 4;
+
+                CREATE TABLE IF NOT EXISTS monthly_trend_learnings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    month_key TEXT NOT NULL,
+                    domain TEXT NOT NULL,
+                    agent_id TEXT NOT NULL,
+                    trend_title TEXT NOT NULL,
+                    trend_summary TEXT NOT NULL,
+                    trend_tags_json TEXT NOT NULL DEFAULT '[]',
+                    momentum_score INTEGER NOT NULL DEFAULT 85,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(month_key, agent_id, trend_title)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_trends_month_domain ON monthly_trend_learnings(month_key, domain, momentum_score DESC);
+                CREATE INDEX IF NOT EXISTS idx_trends_agent_id ON monthly_trend_learnings(agent_id, month_key DESC);
 
                 CREATE TABLE IF NOT EXISTS documents (
                     id TEXT PRIMARY KEY,

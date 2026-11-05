@@ -3,6 +3,10 @@
 const state = {
   currentSessionId: null,
   tools: [],
+  specialists: [],
+  activeChibiIds: [],
+  houseLevel: 1,
+  farmHarvests: 1,
 };
 
 // Navigation Tabs
@@ -15,6 +19,7 @@ document.querySelectorAll(".nav-btn").forEach((btn) => {
     document.getElementById(`tab-${target}`).classList.add("active");
 
     if (target === "specialists") loadSpecialists();
+    if (target === "trends") loadTrends();
     if (target === "memory") loadMemories();
     if (target === "knowledge") loadDocuments();
     if (target === "tools") loadTools();
@@ -46,9 +51,92 @@ async function refreshStatus() {
     if (status.specialists_count !== undefined) {
       document.getElementById("navSpecCount").textContent = status.specialists_count;
     }
+    if (status.monthly_trends_count !== undefined) {
+      const trendBadge = document.getElementById("navTrendCount");
+      if (trendBadge) trendBadge.textContent = status.monthly_trends_count;
+    }
   } catch (err) {
     document.getElementById("activeProviderLabel").textContent = "Offline / Error";
   }
+}
+
+// ============================================================================
+// Chibi Character SVG & House / Farm Village Stage
+// ============================================================================
+function renderChibiSvg(hatColor, outfitColor, isFarm) {
+  const hatShape = isFarm
+    ? `<ellipse cx="20" cy="11" rx="15" ry="4" fill="${hatColor}"/><path d="M11 11 C11 4, 29 4, 29 11 Z" fill="${hatColor}"/>`
+    : `<path d="M9 12 C9 4, 31 4, 31 12 Z" fill="${hatColor}"/><rect x="7" y="11" width="26" height="3" rx="1.5" fill="${hatColor}"/>`;
+
+  return `
+    <svg width="40" height="42" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Shadow -->
+      <ellipse cx="20" cy="39" rx="11" ry="2.5" fill="rgba(0,0,0,0.35)"/>
+      <!-- Chibi Body / Overalls -->
+      <rect x="12" y="24" width="16" height="12" rx="5" fill="${outfitColor}"/>
+      <!-- Chibi Arms -->
+      <circle cx="10" cy="28" r="3" fill="#fde68a"/>
+      <circle cx="30" cy="28" r="3" fill="#fde68a"/>
+      <!-- Chibi Head -->
+      <circle cx="20" cy="17" r="9.5" fill="#fde68a"/>
+      <!-- Rosy Cheeks -->
+      <circle cx="14.5" cy="19" r="1.6" fill="#fb7185" opacity="0.65"/>
+      <circle cx="25.5" cy="19" r="1.6" fill="#fb7185" opacity="0.65"/>
+      <!-- Eyes -->
+      <circle cx="16.5" cy="16.5" r="1.5" fill="#0f172a"/>
+      <circle cx="23.5" cy="16.5" r="1.5" fill="#0f172a"/>
+      <!-- Happy Smile -->
+      <path d="M17.5 20.2 Q20 22.4 22.5 20.2" stroke="#0f172a" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- Builder Hardhat or Farm Straw Hat -->
+      ${hatShape}
+    </svg>
+  `;
+}
+
+async function renderChibiVillageStage(workingIds = []) {
+  if (!state.specialists.length) {
+    const data = await apiFetch("/api/v1/specialists");
+    state.specialists = data.specialists || [];
+  }
+  state.activeChibiIds = workingIds;
+
+  const houseStage = document.getElementById("houseChibiStage");
+  const farmStage = document.getElementById("farmChibiStage");
+  if (!houseStage || !farmStage) return;
+
+  houseStage.innerHTML = "";
+  farmStage.innerHTML = "";
+
+  const houseCrew = state.specialists.filter((s) => (s.chibi?.zone || "house") === "house");
+  const farmCrew = state.specialists.filter((s) => s.chibi?.zone === "farm");
+
+  const buildActorEl = (sp) => {
+    const c = sp.chibi || {};
+    const isWorking = workingIds.includes(sp.id);
+    const isFarm = c.zone === "farm";
+    const el = document.createElement("div");
+    el.className = `chibi-actor ${isWorking ? "working" : ""}`;
+    el.title = `${c.chibi_name || sp.name} (${sp.name}) — Station: ${c.station || "Village"} — Click to select agent`;
+    el.innerHTML = `
+      <div class="chibi-sprite-wrap">
+        ${renderChibiSvg(c.hat_color || "#6366f1", c.outfit_color || "#4f46e5", isFarm)}
+        <span class="chibi-tool-badge">${escapeHtml(c.tool_emoji || sp.icon)}</span>
+      </div>
+      <div class="chibi-name">${escapeHtml(c.chibi_name || sp.name)}</div>
+      <div class="chibi-action">${escapeHtml(isWorking ? c.work_action : c.idle_action)}</div>
+    `;
+    el.addEventListener("click", () => {
+      const select = document.getElementById("specialistSelect");
+      if (select) {
+        select.value = sp.id;
+      }
+      renderChibiVillageStage([sp.id]);
+    });
+    return el;
+  };
+
+  houseCrew.forEach((sp) => houseStage.appendChild(buildActorEl(sp)));
+  farmCrew.forEach((sp) => farmStage.appendChild(buildActorEl(sp)));
 }
 
 async function loadSessions() {
@@ -223,6 +311,22 @@ async function sendChatMessage(messageText) {
     });
 
     state.currentSessionId = res.session_id;
+    const activeSpecIds = (res.active_specialists || []).map((s) => s.id);
+    await renderChibiVillageStage(activeSpecIds);
+
+    // Update House / Farm progress counters when Chibi crew works
+    const domainsWorked = new Set((res.active_specialists || []).map((s) => s.domain));
+    if (domainsWorked.has("webapp") || domainsWorked.has("orchestrator")) {
+      state.houseLevel += 1;
+      const lbl = document.getElementById("houseProgressLabel");
+      if (lbl) lbl.textContent = `House Build Lv.${state.houseLevel} · Active!`;
+    }
+    if (domainsWorked.has("game") || domainsWorked.has("core")) {
+      state.farmHarvests += 1;
+      const lbl = document.getElementById("farmProgressLabel");
+      if (lbl) lbl.textContent = `Farm Harvest #${state.farmHarvests} · Blooming!`;
+    }
+
     appendMessageBubble("assistant", res.reply, {
       toolCalls: res.tool_calls,
       retrievedContext: res.retrieved_context,
@@ -232,7 +336,9 @@ async function sendChatMessage(messageText) {
         provider: res.provider,
         model: res.model,
         latency_ms: res.latency_ms,
-        specialists: (res.active_specialists || []).map((s) => `${s.icon} ${s.name}`).join(" + "),
+        specialists: (res.active_specialists || [])
+          .map((s) => `${s.icon} ${s.chibi?.chibi_name || s.name}`)
+          .join(" + "),
       },
     });
 
@@ -270,12 +376,15 @@ document.addEventListener("click", (e) => {
 // ============================================================================
 async function loadSpecialists() {
   const data = await apiFetch("/api/v1/specialists");
+  state.specialists = data.specialists || [];
   const list = document.getElementById("specialistsList");
   list.innerHTML = "";
 
   data.specialists.forEach((sp) => {
     const card = document.createElement("div");
     card.className = "list-card";
+    const c = sp.chibi || {};
+    const zoneBadge = c.zone === "farm" ? "🌾 Farm Crew" : "🏡 House Builder";
     const kwHtml = (sp.keywords || [])
       .slice(0, 8)
       .map((k) => `<span class="tag-pill">${escapeHtml(k)}</span>`)
@@ -288,10 +397,12 @@ async function loadSpecialists() {
       <div>
         <div class="list-card-title">
           ${escapeHtml(sp.icon)} ${escapeHtml(sp.name)}
+          <span class="tag-pill">${escapeHtml(zoneBadge)} · ${escapeHtml(c.chibi_name || "")} (${escapeHtml(c.tool_emoji || "")})</span>
           <span class="tag-pill">${escapeHtml(sp.domain.toUpperCase())}</span>
-          <span class="tag-pill">id: ${escapeHtml(sp.id)}</span>
         </div>
-        <div class="list-card-sub" style="color: #a5b4fc; margin-bottom: 4px;">${escapeHtml(sp.role)}</div>
+        <div class="list-card-sub" style="color: #a5b4fc; margin-bottom: 4px;">
+          ${escapeHtml(sp.role)} — Station: <strong>${escapeHtml(c.station || "Village")}</strong>
+        </div>
         <div class="list-card-sub">${escapeHtml(sp.description)}</div>
         <div style="margin-top: 6px;">${kwHtml}</div>
       </div>
@@ -302,6 +413,7 @@ async function loadSpecialists() {
       btn.addEventListener("click", async () => {
         await apiFetch(`/api/v1/specialists/${sp.id}`, { method: "DELETE" });
         await loadSpecialists();
+        await renderChibiVillageStage(state.activeChibiIds);
         await refreshStatus();
       });
     }
@@ -341,6 +453,76 @@ document.getElementById("createSpecialistForm").addEventListener("submit", async
 });
 
 document.getElementById("refreshSpecialistsBtn").addEventListener("click", loadSpecialists);
+
+// ============================================================================
+// Monthly Trend Learning Tab (Strictly Trends Only)
+// ============================================================================
+async function loadTrends() {
+  const data = await apiFetch("/api/v1/trends");
+  const monthBadge = document.getElementById("activeTrendMonthBadge");
+  if (monthBadge) monthBadge.textContent = `Month: ${data.current_month}`;
+
+  const list = document.getElementById("trendsList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  data.trends.forEach((t) => {
+    const card = document.createElement("div");
+    card.className = "list-card";
+    const tagsHtml = (t.trend_tags || [])
+      .map((tag) => `<span class="tag-pill">#${escapeHtml(tag)}</span>`)
+      .join("");
+
+    card.innerHTML = `
+      <div style="width: 100%;">
+        <div class="list-card-title">
+          <span class="tag-pill">${escapeHtml(t.month_key)}</span>
+          <span class="tag-pill">${escapeHtml(t.domain.toUpperCase())}</span>
+          <span class="tag-pill">🔥 Momentum: ${t.momentum_score}%</span>
+          <span class="tag-pill">Agent: ${escapeHtml(t.agent_id)}</span>
+        </div>
+        <div style="font-weight: 700; font-size: 14px; margin: 6px 0 4px 0; color: #f8fafc;">
+          ${escapeHtml(t.trend_title)}
+        </div>
+        <div class="list-card-sub">${escapeHtml(t.trend_summary)}</div>
+        <div style="margin-top: 6px;">${tagsHtml}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+document.getElementById("addTrendForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const tags = document
+    .getElementById("trendTags")
+    .value.split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  await apiFetch("/api/v1/trends", {
+    method: "POST",
+    body: JSON.stringify({
+      agent_id: document.getElementById("trendAgentId").value,
+      domain: document.getElementById("trendDomain").value,
+      trend_title: document.getElementById("trendTitle").value.trim(),
+      momentum_score: parseInt(document.getElementById("trendScore").value, 10) || 90,
+      trend_tags: tags,
+      trend_summary: document.getElementById("trendSummary").value.trim(),
+    }),
+  });
+
+  document.getElementById("trendTitle").value = "";
+  document.getElementById("trendSummary").value = "";
+  await loadTrends();
+  await refreshStatus();
+});
+
+document.getElementById("syncMonthlyTrendsBtn").addEventListener("click", async () => {
+  await apiFetch("/api/v1/trends/sync", { method: "POST" });
+  await loadTrends();
+  await refreshStatus();
+});
 
 // ============================================================================
 // Long-Term Memory Tab
@@ -593,5 +775,6 @@ document.getElementById("runtimeConfigForm").addEventListener("submit", async (e
 (async function init() {
   await refreshStatus();
   await loadSessions();
+  await renderChibiVillageStage(["auto_router"]);
 })();
 

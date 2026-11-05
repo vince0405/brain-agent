@@ -316,17 +316,28 @@ def tool_generate_webapp_blueprint(
             "database": f"supabase/migrations/create_{slug}_tables.sql (Supabase Project: yqvbwrhhqivnmmiuxbgz)",
         },
         "supabase_sql_snippet": (
+            f"-- Supabase Postgres Best Practices: IDENTITY PK + Composite Covering Index + Cached RLS\n"
             f"create table if not exists public.{slug}_items (\n"
-            f"  id uuid primary key default gen_random_uuid(),\n"
+            f"  id bigint generated always as identity primary key,\n"
             f"  user_id uuid not null references auth.users(id) on delete cascade,\n"
             f"  title text not null,\n"
             f"  status text not null default 'active',\n"
             f"  payload jsonb not null default '{{}}'::jsonb,\n"
             f"  created_at timestamptz not null default now()\n"
-            f");\n"
-            f"alter table public.{slug}_items enable row level security;\n"
+            f");\n\n"
+            f"-- Index FK & equality columns first, range last, with INCLUDE for Index-Only Scans\n"
+            f"create index if not exists idx_{slug}_user_status_created\n"
+            f"  on public.{slug}_items (user_id, status, created_at desc)\n"
+            f"  include (title);\n\n"
+            f"-- GIN jsonb_path_ops index (2-3x smaller than default jsonb_ops)\n"
+            f"create index if not exists idx_{slug}_payload_gin\n"
+            f"  on public.{slug}_items using gin (payload jsonb_path_ops);\n\n"
+            f"alter table public.{slug}_items enable row level security;\n\n"
+            f"-- Wrap auth.uid() in (SELECT auth.uid()) so Postgres caches it once per query (100x faster)\n"
             f"create policy \"Users manage own {slug}_items\" on public.{slug}_items\n"
-            f"  for all using (auth.uid() = user_id);"
+            f"  for all to authenticated\n"
+            f"  using ((select auth.uid()) = user_id)\n"
+            f"  with check ((select auth.uid()) = user_id);"
         ),
     }
 

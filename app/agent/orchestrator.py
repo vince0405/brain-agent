@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 from app.agent.specialists import specialist_registry
+from app.agent.trends import trend_learner
 from app.config import settings
 from app.database import db
 from app.memory.store import memory_store, session_store
@@ -65,6 +66,7 @@ class BrainAgent:
         self,
         base_prompt: str,
         active_specialists: List[Dict[str, Any]],
+        monthly_trends: List[Dict[str, Any]],
         recalled_memories: List[Dict[str, Any]],
         rag_hits: List[Dict[str, Any]],
         user_id: str,
@@ -77,8 +79,14 @@ class BrainAgent:
         if active_specialists:
             spec_blocks = []
             for sp in active_specialists:
+                chibi = sp.get("chibi") or {}
+                chibi_line = (
+                    f"Chibi Persona: {chibi.get('chibi_name', sp['name'])} ({chibi.get('title', sp['role'])}) "
+                    f"working in the {chibi.get('zone', 'village').upper()} zone at [{chibi.get('station', 'Station')}] — {chibi.get('work_action', '')}"
+                )
                 spec_blocks.append(
                     f"### {sp['icon']} {sp['name']} ({sp['role']} | domain={sp['domain']})\n"
+                    f"{chibi_line}\n"
                     f"Instructions: {sp['system_prompt']}"
                 )
             if len(active_specialists) == 1:
@@ -93,6 +101,18 @@ class BrainAgent:
                     "Coordinate the following specialist agents in your response, clearly labeling each specialist's contribution:\n\n"
                     + "\n\n".join(spec_blocks)
                 )
+
+        if monthly_trends:
+            trend_lines = [
+                f"- [{t['month_key']} | {t['domain'].upper()} | momentum={t['momentum_score']}%] "
+                f"**{t['trend_title']}**: {t['trend_summary']}"
+                for t in monthly_trends
+            ]
+            sections.append(
+                "## Monthly Trend Learnings (Strictly Industry & Tech Trends Only)\n"
+                "Incorporate these current monthly trends into your architecture, design, or game recommendations:\n"
+                + "\n".join(trend_lines)
+            )
 
         if recalled_memories:
             mem_lines = [
@@ -408,6 +428,7 @@ class BrainAgent:
         user_message: str,
         user_id: str,
         active_specialists: List[Dict[str, Any]],
+        monthly_trends: List[Dict[str, Any]],
         recalled_memories: List[Dict[str, Any]],
         rag_hits: List[Dict[str, Any]],
         memories_saved: List[str],
@@ -539,9 +560,17 @@ class BrainAgent:
 
         if active_specialists:
             header_badges = " + ".join(
-                f"{sp['icon']} **{sp['name']}** (*{sp['role']}*)" for sp in active_specialists
+                f"{sp['icon']} **{sp['name']}** (*Chibi: {sp.get('chibi', {}).get('chibi_name', sp['name'])} @ {sp.get('chibi', {}).get('zone', 'village').upper()}*)"
+                for sp in active_specialists
             )
             parts.append(f"### Routed Specialist Agent(s): {header_badges}")
+
+        if monthly_trends:
+            top_trend = monthly_trends[0]
+            parts.append(
+                f"📈 **Monthly Trend Pulse (`{top_trend['month_key']}` — Strictly Trends):** "
+                f"**{top_trend['trend_title']}** — *{top_trend['trend_summary']}*"
+            )
 
         if memories_saved:
             parts.append(
@@ -694,11 +723,15 @@ class BrainAgent:
                 )
             )
 
-        # 4. Route task to Specialist Agent(s) (Web App / Game Dev / Core)
+        # 4. Route task to Specialist Agent(s) (Web App / Game Dev / Core) & Sync Monthly Trends
+        trend_learner.ensure_current_month_synced()
         active_specialists = specialist_registry.route_task(
             message=req.message,
             requested_agent_id=req.specialist_id,
             project_mode=req.project_mode,
+        )
+        monthly_trends = trend_learner.get_trends_for_agents(
+            agent_ids=[sp["id"] for sp in active_specialists]
         )
         specialist_badges = [
             ActiveSpecialistBadge(
@@ -707,15 +740,17 @@ class BrainAgent:
                 role=sp["role"],
                 domain=sp["domain"],
                 icon=sp["icon"],
+                chibi=sp.get("chibi") or {},
             )
             for sp in active_specialists
         ]
 
-        # 5. Assemble system prompt with specialist personas
+        # 5. Assemble system prompt with specialist personas + monthly trends
         base_prompt = req.system_prompt_override or settings.system_prompt
         augmented_system_prompt = self._build_augmented_system_prompt(
             base_prompt=base_prompt,
             active_specialists=active_specialists,
+            monthly_trends=monthly_trends,
             recalled_memories=recalled_memories,
             rag_hits=rag_hits,
             user_id=req.user_id,
@@ -771,6 +806,7 @@ class BrainAgent:
                     user_message=req.message,
                     user_id=req.user_id,
                     active_specialists=active_specialists,
+                    monthly_trends=monthly_trends,
                     recalled_memories=recalled_memories,
                     rag_hits=rag_hits,
                     memories_saved=memories_saved,
@@ -782,6 +818,7 @@ class BrainAgent:
                 user_message=req.message,
                 user_id=req.user_id,
                 active_specialists=active_specialists,
+                monthly_trends=monthly_trends,
                 recalled_memories=recalled_memories,
                 rag_hits=rag_hits,
                 memories_saved=memories_saved,
@@ -841,6 +878,7 @@ class BrainAgent:
             provider=provider,
             model=model,
             active_specialists=specialist_badges,
+            monthly_trends_applied=monthly_trends,
             tool_calls=tool_steps,
             retrieved_context=retrieved_context,
             memories_saved=memories_saved,

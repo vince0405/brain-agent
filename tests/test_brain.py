@@ -120,3 +120,32 @@ def test_multi_agent_webapp_and_game_routing():
     assert "game" in g_domains
     assert any(tc["tool_name"] == "generate_game_blueprint" for tc in g_body["tool_calls"])
 
+
+def test_chibi_village_and_monthly_trend_learning():
+    client = TestClient(app)
+
+    # 1. Verify every specialist has a Chibi persona assigned to 'house' or 'farm'
+    specs = client.get("/api/v1/specialists").json()["specialists"]
+    assert len(specs) >= 8
+    zones = {s["chibi"]["zone"] for s in specs}
+    assert "house" in zones
+    assert "farm" in zones
+
+    # 2. Verify monthly trends endpoint (strictly trends only)
+    trends_res = client.get("/api/v1/trends")
+    assert trends_res.status_code == 200
+    t_body = trends_res.json()
+    assert t_body["policy"] == "strictly_trends_only"
+    assert t_body["count"] >= 8
+
+    # 3. Verify chat response applies monthly trends and returns Chibi metadata
+    chat_res = client.post(
+        "/api/v1/chat",
+        json={"message": "Optimize our Supabase Postgres schema and indexes for our web app."},
+    )
+    assert chat_res.status_code == 200
+    c_body = chat_res.json()
+    assert len(c_body["monthly_trends_applied"]) >= 1
+    assert "chibi_name" in c_body["active_specialists"][0]["chibi"]
+    assert "(select auth.uid())" in c_body["reply"]
+
