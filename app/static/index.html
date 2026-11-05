@@ -3,66 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BRAIN AGENT // HQ COMMAND — House & Farm Chibi World</title>
+  <title>BRAIN HOMESTEAD // Chibi House Builders &amp; Farm Studio</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
   <div class="hq-shell">
     <!-- ====================================================================
-         TOP COMMAND HEADER BAR
+         TOP HOMESTEAD HEADER BAR
          ==================================================================== -->
     <header class="hq-topbar">
       <div class="hq-brand">
-        <div class="hq-logo-hex">🧠</div>
+        <div class="hq-logo-hex">🏡</div>
         <div class="hq-brand-text">
-          <div class="hq-title">BRAIN AGENT // HQ COMMAND</div>
+          <div class="hq-title">BRAIN HOMESTEAD // MULTI-AGENT VILLAGE</div>
           <div class="hq-sub">
             <span class="live-dot"></span>
-            <span id="supabaseStatusText">SUPABASE LIVE (yqvbwrhhqivnmmiuxbgz)</span>
+            <span id="supabaseStatusText">SUPABASE: yqvbwrhhqivnmmiuxbgz</span>
             <span class="sep">•</span>
-            <span id="trendCycleText">TRENDS: 2026-11 (STRICTLY TRENDS)</span>
+            <span id="trendCycleText">MONTHLY TRENDS: 2026-11 (STRICTLY TRENDS)</span>
           </div>
         </div>
       </div>
 
-      <!-- Zone Camera Filter Pills -->
+      <!-- Homestead & Farm Zone Camera Pills -->
       <nav class="zone-nav" id="zoneNav">
-        <button class="zone-pill active" data-zone="OVERVIEW">OVERVIEW</button>
-        <button class="zone-pill" data-zone="HOUSE_BUILD">🏡 HOUSE BUILD</button>
-        <button class="zone-pill" data-zone="FARM_HARVEST">🌾 FARM HARVEST</button>
-        <button class="zone-pill" data-zone="TREND_NEXUS">📈 TREND NEXUS</button>
-        <button class="zone-pill" data-zone="BARN_REST">☕ BARN &amp; REST</button>
+        <button class="zone-pill active" data-zone="VILLAGE_ALL">🌍 FULL VILLAGE</button>
+        <button class="zone-pill" data-zone="HOUSE_SITE">🏡 HOUSE BUILD SITE</button>
+        <button class="zone-pill" data-zone="FARM_FIELDS">🌾 HARVEST FARM</button>
+        <button class="zone-pill" data-zone="TREND_WELL">🧭 TREND SUNDIAL</button>
+        <button class="zone-pill" data-zone="CAMPFIRE">🔥 CAMPFIRE REST</button>
       </nav>
 
-      <!-- Right Status, View Mode Switcher & Studio Drawer Triggers -->
+      <!-- Right Controls: Create Custom Chibi, 2D/3D Toggle, Studio Modal -->
       <div class="hq-topbar-right">
-        <span class="hq-clock" id="hqClock">--:--:--</span>
-        <div class="online-pill">
-          <span class="live-dot"></span>
-          <span id="agentsOnlineCount">16 AGENTS ONLINE</span>
-        </div>
+        <button class="create-chibi-btn" id="openCreatorBtn">
+          ✨ + Make Your Own Chibi Agent
+        </button>
         <div class="view-toggle-group">
           <button class="view-btn active" id="btn2dIso" data-view="2D">2D ISO</button>
-          <button class="view-btn" id="btn3dWebgl" data-view="3D">3D WEBGL</button>
+          <button class="view-btn" id="btn3dWebgl" data-view="3D">3D ORBIT</button>
         </div>
-        <button class="studio-drawer-btn" id="openStudioModalBtn" title="Open Memory, RAG Docs, Trends & LLM Config">
-          ⚙️ STUDIO &amp; DB
+        <button class="studio-drawer-btn" id="openStudioModalBtn">
+          📚 Trends, RAG &amp; Keys
         </button>
       </div>
     </header>
 
     <!-- ====================================================================
-         MAIN WORKSPACE: LEFT ISOMETRIC/3D WORLD + RIGHT INSPECTOR & TELEMETRY
+         MAIN WORKSPACE: LEFT HOMESTEAD & FARM WORLD + RIGHT AGENT WORKSHOP
          ==================================================================== -->
     <div class="hq-main">
-      <!-- LEFT: INTERACTIVE 2D ISO / 3D ORBIT WORLD CANVAS -->
+      <!-- LEFT: INTERACTIVE 2D/3D HOMESTEAD HOUSE & FARM DIORAMA -->
       <div class="viewport-container" id="viewportContainer">
         <canvas id="worldCanvas"></canvas>
 
-        <!-- Floating Latest Agent Output Toast / Drawer Trigger -->
+        <!-- Floating Specialist Deliverable Drawer -->
         <div class="agent-output-overlay hidden" id="agentOutputOverlay">
           <div class="output-overlay-header">
-            <span id="outputOverlayTitle">⚡ Latest Specialist Deliverable</span>
+            <span id="outputOverlayTitle">⚡ Specialist Output</span>
             <div>
               <button class="btn-mini" id="copyOutputBtn">Copy</button>
               <button class="btn-mini" id="closeOutputOverlayBtn">✕</button>
@@ -74,111 +72,127 @@
         <!-- Bottom Viewport HUD Bar -->
         <div class="viewport-hud">
           <div class="hud-left">
-            <div class="hud-Logo">B</div>
-            <span class="hud-mode-label" id="hudModeLabel">VIEWPORT (2D ISO)</span>
-            <span class="hud-zone-badge" id="hudZoneBadge">OVERVIEW</span>
-            <button class="hud-reset-btn" id="resetCameraBtn">Reset Camera ⟲</button>
+            <div class="hud-Logo">🌱</div>
+            <span class="hud-mode-label" id="hudModeLabel">2D ISOMETRIC DIORAMA</span>
+            <span class="hud-zone-badge" id="hudZoneBadge">FULL VILLAGE</span>
+            <button class="hud-reset-btn" id="resetCameraBtn">Reset View ⟲</button>
           </div>
           <div class="hud-right">
-            Click Chibi Agent to Inspect &amp; Route • Drag to Pan / 3D Orbit • Scroll to Zoom
+            Click Any Chibi to Customize or Task • Drag to Pan / 3D Orbit • Scroll to Zoom
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: COMMAND SIDEBAR -->
+      <!-- RIGHT: CHIBI WORKSHOP, TASK ROUTER & ACTIVITY LOG -->
       <aside class="command-sidebar">
-        <!-- 1. THE BOSS DESK // APPROVALS & MONTHLY TRENDS -->
+        <!-- 1. VILLAGE PROGRESS & MONTHLY TREND PULSE -->
         <section class="cmd-panel boss-panel">
           <div class="panel-title-row">
-            <span class="panel-title">👑 THE BOSS DESK // MONTHLY TRENDS</span>
+            <span class="panel-title">🧭 VILLAGE PROGRESS &amp; MONTHLY TRENDS</span>
             <span class="count-pill" id="trendCountPill">8 TRENDS</span>
           </div>
-          <div class="boss-status-box" id="bossStatusBox">
-            <div class="boss-status-line" id="bossStatusText">
-              All Bio-Signals cleared. House Build &amp; Farm Harvest nominal.
+          <div class="boss-status-box">
+            <div class="village-meters">
+              <div class="meter-col">
+                <div class="kv-row">
+                  <span class="kv-key">🏡 HOUSE BUILD</span>
+                  <span class="kv-val" id="houseMeterText">Lv. 3 Timber &amp; Roof</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill amber" id="houseMeterBar" style="width: 72%;"></div></div>
+              </div>
+              <div class="meter-col">
+                <div class="kv-row">
+                  <span class="kv-key">🌾 FARM HARVEST</span>
+                  <span class="kv-val" id="farmMeterText">Season 4 Blooming</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" id="farmMeterBar" style="width: 84%;"></div></div>
+              </div>
             </div>
             <div class="boss-trend-ticker" id="bossTrendTicker">
-              📈 Learning strictly from monthly trends (2026-11)...
+              📈 Monthly Trend Learning: Strictly industry &amp; gameplay trends only.
             </div>
           </div>
         </section>
 
-        <!-- 2. AGENT INSPECTOR & ROUTING -->
+        <!-- 2. SELECTED CHIBI AGENT INSPECTOR & CUSTOMIZER -->
         <section class="cmd-panel inspector-panel">
           <div class="panel-title-row">
-            <span class="panel-title">AGENT INSPECTOR &amp; ROUTING</span>
-            <span class="domain-badge" id="inspDomainBadge">HOUSE BUILD // WEBAPP</span>
+            <span class="panel-title">CHIBI AGENT WORKSHOP</span>
+            <div>
+              <button class="btn-mini" id="editSelectedChibiBtn" title="Customize this Chibi's Name, Colors, Role & Prompt">✏️ Customize Chibi</button>
+              <span class="domain-badge" id="inspDomainBadge">WEBAPP // HOUSE</span>
+            </div>
           </div>
 
           <div class="inspector-agent-card">
             <div class="insp-avatar" id="inspAvatar">🔨</div>
             <div class="insp-info">
-              <div class="insp-name" id="inspName">Milo</div>
-              <div class="insp-role" id="inspRole">House Framing &amp; Web App Architect</div>
+              <div class="insp-name" id="inspName">Milo Mason</div>
+              <div class="insp-role" id="inspRole">Web App Architect &amp; Timber Builder</div>
             </div>
-            <div class="insp-state-pill" id="inspStatePill">🏡 House Build</div>
+            <div class="insp-state-pill" id="inspStatePill">🏡 Building House</div>
           </div>
 
           <div class="override-section">
-            <div class="micro-label">DIRECT OVERRIDE ROUTING (* = ASSIGNED)</div>
+            <div class="micro-label">ASSIGN CHIBI WORKSITE</div>
             <div class="override-grid">
-              <button class="override-btn active" data-target-zone="HOUSE_BUILD" id="btnRouteHouse">
-                🏡 Work on House *
+              <button class="override-btn active" data-target-zone="HOUSE_SITE" id="btnRouteHouse">
+                🏡 Build the House
               </button>
-              <button class="override-btn" data-target-zone="FARM_HARVEST" id="btnRouteFarm">
-                🌾 Work on Farm
+              <button class="override-btn" data-target-zone="FARM_FIELDS" id="btnRouteFarm">
+                🌾 Work on the Farm
               </button>
-              <button class="override-btn" data-target-zone="TREND_NEXUS" id="btnRouteTrends">
-                📈 Learn Monthly Trends
+              <button class="override-btn" data-target-zone="TREND_WELL" id="btnRouteTrends">
+                🧭 Study Monthly Trends
               </button>
-              <button class="override-btn" data-target-zone="BARN_REST" id="btnRouteRest">
-                ☕ Send to Barn / Rest
+              <button class="override-btn" data-target-zone="CAMPFIRE" id="btnRouteRest">
+                🔥 Rest by Campfire
               </button>
             </div>
           </div>
 
           <div class="task-telemetry-box">
             <div class="kv-row">
-              <span class="kv-key">CURRENT TASK</span>
-              <span class="kv-val" id="inspCurrentTask">Framing oak rafters &amp; Next.js routes</span>
+              <span class="kv-key">CHIBI CHORE</span>
+              <span class="kv-val" id="inspCurrentTask">Hammering oak roof beams &amp; API routes</span>
             </div>
             <div class="kv-row">
-              <span class="kv-key">ACTIVE STATION</span>
-              <span class="kv-val cyan-mono" id="inspActiveStation">house/framing/app/agent/orchestrator.py</span>
+              <span class="kv-key">SPECIALTY</span>
+              <span class="kv-val cyan-mono" id="inspActiveStation">Web App Architecture &amp; Supabase SQL</span>
             </div>
             <div class="kv-row">
-              <span class="kv-key">MONTHLY TREND</span>
+              <span class="kv-key">LEARNED TREND</span>
               <span class="kv-val amber-text" id="inspMonthlyTrend">Local-First Sync &amp; Covering Indexes</span>
             </div>
             <div class="progress-wrap">
               <div class="kv-row">
-                <span class="kv-key">PROGRESS</span>
-                <span class="kv-val" id="inspProgressPct">78%</span>
+                <span class="kv-key">TASK PROGRESS</span>
+                <span class="kv-val" id="inspProgressPct">80%</span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill" id="inspProgressBar" style="width: 78%;"></div>
+                <div class="progress-fill" id="inspProgressBar" style="width: 80%;"></div>
               </div>
             </div>
           </div>
 
-          <!-- Directive Dispatch Form (Calls /api/v1/chat for Selected Agent) -->
+          <!-- Send Task to This Chibi Agent -->
           <form class="directive-form" id="directiveForm">
             <input
               type="text"
               id="directiveInput"
-              placeholder="Directive for Milo (e.g. Build a web app or game)..."
+              placeholder="Ask this Chibi agent to build a web app, game, or SQL..."
               autocomplete="off"
               required
             />
-            <button type="submit" class="dispatch-btn" id="dispatchBtn">Dispatch Directive</button>
+            <button type="submit" class="dispatch-btn" id="dispatchBtn">Run Task ➔</button>
           </form>
         </section>
 
-        <!-- 3. LIVE TELEMETRY STREAM -->
+        <!-- 3. VILLAGE ACTIVITY & AGENT LOG -->
         <section class="cmd-panel telemetry-panel">
           <div class="panel-title-row">
-            <span class="panel-title"><span class="live-dot-red"></span> LIVE TELEMETRY STREAM</span>
-            <span class="events-count" id="telemetryCountLabel">0 EVENTS</span>
+            <span class="panel-title"><span class="live-dot"></span> VILLAGE &amp; AGENT ACTIVITY LOG</span>
+            <span class="events-count" id="telemetryCountLabel">0 LOGS</span>
           </div>
           <div class="telemetry-feed" id="telemetryFeed"></div>
         </section>
@@ -186,16 +200,101 @@
     </div>
 
     <!-- ====================================================================
-         STUDIO & DATABASE MODAL (RAG, MEMORIES, MONTHLY TRENDS, LLM CONFIG)
+         MAKE / CUSTOMIZE YOUR OWN CHIBI AGENT MODAL
+         ==================================================================== -->
+    <div class="studio-modal-backdrop hidden" id="chibiCreatorBackdrop">
+      <div class="studio-modal" style="max-width: 620px; height: auto; max-height: 90vh;">
+        <div class="studio-modal-header">
+          <h3 id="creatorModalTitle" style="font-size: 14px;">✨ Make / Customize Your Own Chibi Agent</h3>
+          <button class="close-modal-btn" id="closeCreatorModalBtn">✕ Close</button>
+        </div>
+        <div class="studio-modal-body">
+          <form id="customChibiForm" class="modal-form">
+            <input type="hidden" id="editChibiId" value="" />
+
+            <div class="split-2">
+              <div>
+                <label>Chibi Character Name</label>
+                <input type="text" id="customChibiName" placeholder="e.g., Barnaby, Sora, Koko..." required />
+              </div>
+              <div>
+                <label>Agent Role / Specialty</label>
+                <input type="text" id="customChibiRole" placeholder="e.g., 3D Shader &amp; Pixel Artist" required />
+              </div>
+            </div>
+
+            <div class="split-2">
+              <div>
+                <label>Worksite Assignment</label>
+                <select id="customChibiZone">
+                  <option value="HOUSE_SITE">🏡 Building the House (Web App Crew)</option>
+                  <option value="FARM_FIELDS">🌾 Working on the Farm (Game Dev Crew)</option>
+                  <option value="TREND_WELL">🧭 Trend Sundial (Monthly Trend Researcher)</option>
+                  <option value="CAMPFIRE">🔥 Campfire &amp; Guard (QA / Support)</option>
+                </select>
+              </div>
+              <div>
+                <label>Tool Held in Hand</label>
+                <select id="customChibiTool">
+                  <option value="🔨">🔨 Builder Hammer</option>
+                  <option value="🪓">🪓 Timber Axe</option>
+                  <option value="🖌️">🖌️ House Paintbrush</option>
+                  <option value="🔧">🔧 Pipe Wrench</option>
+                  <option value="🌾">🌾 Golden Wheat Scythe</option>
+                  <option value="🚿">🚿 Farm Watering Can</option>
+                  <option value="⚙️">⚙️ Windmill Gear</option>
+                  <option value="🍯">🍯 Honey Jar</option>
+                  <option value="🎣">🎣 Fishing Rod</option>
+                  <option value="🛡️">🛡️ Watchdog Shield</option>
+                  <option value="🧭">🧭 Trend Compass</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="split-2">
+              <div>
+                <label>Hat Color</label>
+                <input type="color" id="customHatColor" value="#f59e0b" style="height: 36px; width: 100%; cursor: pointer;" />
+              </div>
+              <div>
+                <label>Overalls / Outfit Color</label>
+                <input type="color" id="customBodyColor" value="#2563eb" style="height: 36px; width: 100%; cursor: pointer;" />
+              </div>
+            </div>
+
+            <label>House / Farm Chore Description (shown when working)</label>
+            <input type="text" id="customChibiChore" placeholder="e.g., Carving oak porch pillars &amp; writing React hooks" required />
+
+            <label>Auto-Router Keywords (comma-separated words that route tasks to this agent)</label>
+            <input type="text" id="customChibiKeywords" placeholder="e.g., shader, 3d, animation, frontend, api" />
+
+            <label>Agent Brain System Prompt (Instructions for how this agent answers)</label>
+            <textarea id="customChibiPrompt" rows="3" placeholder="You are a specialist agent in Brain. You help the user with..." required></textarea>
+
+            <div class="row-btns" style="margin-top: 10px; justify-content: space-between;">
+              <button type="button" class="btn-secondary hidden" id="deleteCustomChibiBtn" style="border-color: #f43f5e; color: #fda4af;">
+                🗑️ Remove Agent
+              </button>
+              <button type="submit" class="dispatch-btn" style="margin-left: auto;">
+                ✨ Save Chibi Agent to Village
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         STUDIO & DATABASE MODAL (MONTHLY TRENDS, MEMORIES, RAG, LLM KEYS)
          ==================================================================== -->
     <div class="studio-modal-backdrop hidden" id="studioModalBackdrop">
       <div class="studio-modal">
         <div class="studio-modal-header">
           <div class="studio-modal-tabs">
-            <button class="s-tab active" data-stab="trends">📈 Monthly Trends (Strictly Trends)</button>
+            <button class="s-tab active" data-stab="trends">📈 Monthly Trends (Just Trends)</button>
             <button class="s-tab" data-stab="memory">🧬 Long-Term Memories</button>
             <button class="s-tab" data-stab="rag">📚 Knowledge Base (RAG)</button>
-            <button class="s-tab" data-stab="config">⚡ LLM &amp; Supabase Config</button>
+            <button class="s-tab" data-stab="config">⚡ LLM &amp; Supabase Keys</button>
           </div>
           <button class="close-modal-btn" id="closeStudioModalBtn">✕ Close</button>
         </div>
@@ -205,34 +304,34 @@
           <div class="stab-pane active" id="stab-trends">
             <div class="modal-two-col">
               <form id="addTrendForm" class="modal-form">
-                <h3>Teach New Monthly Trend (Strictly Trends Only)</h3>
+                <h3>Add Monthly Trend (Strictly Trends Only)</h3>
                 <label>Specialist Agent</label>
                 <select id="trendAgentId">
-                  <option value="webapp_architect">🏗️ Milo (Web App Architect)</option>
-                  <option value="frontend_ui_agent">🎨 Luna (Frontend &amp; UI/UX)</option>
-                  <option value="backend_supabase_agent">⚡ Volt (Backend &amp; Supabase)</option>
-                  <option value="game_designer">🎮 Pip (Game Designer)</option>
-                  <option value="game_engine_coder">🕹️ Torque (Game Engine Coder)</option>
-                  <option value="game_world_narrative">🗺️ Melody (Game World &amp; Narrative)</option>
-                  <option value="qa_security_agent">🛡️ Bramble (QA &amp; Security)</option>
+                  <option value="webapp_architect">🏗️ House Builder (Web App Architect)</option>
+                  <option value="frontend_ui_agent">🎨 House Painter (Frontend &amp; UI/UX)</option>
+                  <option value="backend_supabase_agent">⚡ Pipe Engineer (Backend &amp; Supabase)</option>
+                  <option value="game_designer">🌾 Crop Planner (Game Designer)</option>
+                  <option value="game_engine_coder">⚙️ Windmill Mechanic (Game Engine Coder)</option>
+                  <option value="game_world_narrative">🍯 Beekeeper (Game World &amp; Narrative)</option>
+                  <option value="qa_security_agent">🛡️ Gate Watchdog (QA &amp; Security)</option>
                 </select>
                 <label>Domain</label>
                 <select id="trendDomain">
-                  <option value="webapp">Web App / House Crew (webapp)</option>
-                  <option value="game">Game Dev / Farm Crew (game)</option>
-                  <option value="core">Postgres / QA (core)</option>
+                  <option value="webapp">Web App Trend (webapp)</option>
+                  <option value="game">Game Dev Trend (game)</option>
+                  <option value="core">Postgres / QA Trend (core)</option>
                 </select>
                 <label>Trend Title</label>
                 <input type="text" id="trendTitle" placeholder="e.g., Supabase RLS InitPlan &amp; Covering Indexes" required />
                 <label>Trend Summary</label>
-                <textarea id="trendSummary" rows="3" placeholder="How the agent uses this trend..." required></textarea>
+                <textarea id="trendSummary" rows="3" placeholder="Pure tech, design, or gameplay trend learned this month..." required></textarea>
                 <div class="row-btns">
-                  <button type="submit" class="dispatch-btn">Save Trend</button>
-                  <button type="button" class="btn-secondary" id="syncMonthlyTrendsBtn">↻ Sync Current Month</button>
+                  <button type="submit" class="dispatch-btn">Save Monthly Trend</button>
+                  <button type="button" class="btn-secondary" id="syncMonthlyTrendsBtn">↻ Sync Month</button>
                 </div>
               </form>
               <div>
-                <h3>Active Monthly Trend Pulse</h3>
+                <h3>Learned Monthly Trends (Zero Personal Data)</h3>
                 <div id="trendsList" class="modal-list"></div>
               </div>
             </div>
