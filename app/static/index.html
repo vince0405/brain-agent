@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain — Production AI Agent Studio</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">🧠</div>
+        <div>
+          <div class="brand-title">BRAIN</div>
+          <div class="brand-subtitle">Production Agent v1.0</div>
+        </div>
+      </div>
+
+      <div class="status-pill" id="providerStatusPill">
+        <span class="status-dot"></span>
+        <span id="activeProviderLabel">Loading...</span>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-tab="chat">
+          <span>💬</span> Agent Chat Studio
+        </button>
+        <button class="nav-btn" data-tab="memory">
+          <span>🧬</span> Long-Term Memory
+          <span class="badge" id="navMemoryCount">0</span>
+        </button>
+        <button class="nav-btn" data-tab="knowledge">
+          <span>📚</span> Knowledge Base (RAG)
+          <span class="badge" id="navDocCount">0</span>
+        </button>
+        <button class="nav-btn" data-tab="tools">
+          <span>🛠️</span> Tools & Sandbox
+          <span class="badge" id="navToolCount">0</span>
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <span>⚡</span> LLM & Production API
+        </button>
+      </nav>
+
+      <div class="sessions-panel" id="sessionsPanel">
+        <div class="sessions-header">
+          <span>SESSIONS</span>
+          <button class="btn-xs" id="newSessionBtn">+ New</button>
+        </div>
+        <div class="sessions-list" id="sessionsList"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a href="/docs" target="_blank" class="footer-link">OpenAPI / Swagger Docs ↗</a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-view">
+      <!-- TAB 1: CHAT STUDIO -->
+      <section class="tab-pane active" id="tab-chat">
+        <header class="pane-header">
+          <div>
+            <h1 id="currentSessionTitle">Agent Chat Studio</h1>
+            <p class="subtitle">Multi-step tool calling, long-term episodic memory, and hybrid RAG</p>
+          </div>
+          <div class="header-controls">
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggleTools" checked />
+              <span>Tools</span>
+            </label>
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggleRag" checked />
+              <span>RAG</span>
+            </label>
+            <label class="toggle-chip">
+              <input type="checkbox" id="toggleMemory" checked />
+              <span>Memory</span>
+            </label>
+            <input type="text" id="userIdInput" class="input-compact" value="default_user" title="Active User / Tenant ID" placeholder="user_id" />
+          </div>
+        </header>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="welcome-card">
+            <h2>Welcome to your Production Brain Agent</h2>
+            <p>Every message automatically recalls user memories, searches your RAG knowledge base, and executes tools when needed. Try one of these prompts:</p>
+            <div class="quick-prompts">
+              <button class="prompt-chip" data-prompt="Remember that my name is Alex and our production stack uses FastAPI, PostgreSQL, and Redis.">
+                🧬 Store a long-term memory
+              </button>
+              <button class="prompt-chip" data-prompt="Calculate sqrt(1024) * 15 + mean([120, 340, 500])">
+                🧮 Run math calculator tool
+              </button>
+              <button class="prompt-chip" data-prompt="What are the production integration endpoints and architecture of Brain?">
+                📚 Query RAG knowledge base
+              </button>
+              <button class="prompt-chip" data-prompt="What time is it right now and what are the database stats?">
+                🕒 Check system clock & telemetry
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <form class="chat-composer" id="chatForm">
+          <textarea
+            id="chatInput"
+            rows="2"
+            placeholder="Ask Brain anything, or instruct it to remember facts, query docs, or run tools... (Enter to send, Shift+Enter for newline)"
+          ></textarea>
+          <button type="submit" class="btn-primary" id="sendBtn">Send ➔</button>
+        </form>
+      </section>
+
+      <!-- TAB 2: LONG-TERM MEMORY -->
+      <section class="tab-pane" id="tab-memory">
+        <header class="pane-header">
+          <div>
+            <h1>Persistent Long-Term Memory</h1>
+            <p class="subtitle">Episodic facts, user preferences, and project instructions recalled across sessions</p>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Add Memory Fact</h3>
+            <form id="addMemoryForm" class="stack-form">
+              <label>User / Tenant ID</label>
+              <input type="text" id="memUserId" value="default_user" required />
+
+              <label>Category</label>
+              <select id="memCategory">
+                <option value="fact">Fact (Identity / Role)</option>
+                <option value="preference">Preference (Style / Stack)</option>
+                <option value="project">Project Context</option>
+                <option value="instruction">Standing Instruction</option>
+                <option value="general">General</option>
+              </select>
+
+              <label>Importance (1-5)</label>
+              <input type="number" id="memImportance" value="4" min="1" max="5" />
+
+              <label>Memory Content</label>
+              <textarea id="memContent" rows="4" placeholder="e.g., Always respond with TypeScript code examples and concise bullet points." required></textarea>
+
+              <button type="submit" class="btn-primary">Save to Long-Term Memory</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <h3>Stored Memories</h3>
+              <button class="btn-xs" id="refreshMemoriesBtn">↻ Refresh</button>
+            </div>
+            <div id="memoriesList" class="item-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: KNOWLEDGE BASE (RAG) -->
+      <section class="tab-pane" id="tab-knowledge">
+        <header class="pane-header">
+          <div>
+            <h1>Hybrid RAG Knowledge Base</h1>
+            <p class="subtitle">Ingest runbooks, docs, and notes for automatic chunking & vector/lexical retrieval</p>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Ingest Document</h3>
+            <form id="ingestDocForm" class="stack-form">
+              <label>Document Title</label>
+              <input type="text" id="docTitle" placeholder="e.g., Payment Service Runbook" required />
+
+              <label>Source URI / Identifier</label>
+              <input type="text" id="docSource" value="manual://runbook" />
+
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="docTags" placeholder="payments, production, sla" />
+
+              <label>Document Content (Markdown / Text / Code)</label>
+              <textarea id="docContent" rows="7" placeholder="Paste documentation, FAQ, or technical notes here..." required></textarea>
+
+              <button type="submit" class="btn-primary">Chunk & Index Document</button>
+            </form>
+          </div>
+
+          <div class="stack-col">
+            <div class="card">
+              <h3>Test Semantic Retrieval</h3>
+              <form id="searchKnowledgeForm" class="inline-form">
+                <input type="text" id="ragSearchInput" placeholder="Search across indexed chunks..." required />
+                <button type="submit" class="btn-primary">Search</button>
+              </form>
+              <div id="ragSearchResults" class="item-list" style="margin-top: 12px;"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header-row">
+                <h3>Indexed Documents</h3>
+                <button class="btn-xs" id="refreshDocsBtn">↻ Refresh</button>
+              </div>
+              <div id="documentsList" class="item-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: TOOLS & SANDBOX -->
+      <section class="tab-pane" id="tab-tools">
+        <header class="pane-header">
+          <div>
+            <h1>Registered Agent Tools & Sandbox</h1>
+            <p class="subtitle">Inspect function-calling JSON schemas and test tool execution directly</p>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Registered Tools</h3>
+            <div id="toolsList" class="item-list"></div>
+          </div>
+
+          <div class="card">
+            <h3>Interactive Tool Sandbox</h3>
+            <form id="runToolForm" class="stack-form">
+              <label>Select Tool</label>
+              <select id="sandboxToolSelect"></select>
+
+              <label>Arguments (JSON)</label>
+              <textarea id="sandboxToolArgs" rows="6" class="code-input">{"expression": "sqrt(256) * 12"}</textarea>
+
+              <button type="submit" class="btn-primary">Execute Tool</button>
+            </form>
+            <div style="margin-top: 16px;">
+              <label class="field-label">Execution Output</label>
+              <pre id="sandboxToolOutput" class="code-block">Click "Execute Tool" to inspect live output and latency.</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: LLM CONFIG & PRODUCTION INTEGRATION -->
+      <section class="tab-pane" id="tab-settings">
+        <header class="pane-header">
+          <div>
+            <h1>LLM Provider Config & Production SDK</h1>
+            <p class="subtitle">Hot-switch LLM providers or copy production client code for your services</p>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Runtime LLM Configuration</h3>
+            <form id="runtimeConfigForm" class="stack-form">
+              <label>Active Provider</label>
+              <select id="cfgProvider">
+                <option value="auto">Auto (Pick first configured key or Local Hybrid)</option>
+                <option value="openai">OpenAI / Compatible (vLLM, Groq, OpenRouter)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="anthropic">Anthropic Claude</option>
+                <option value="ollama">Ollama (Local Server)</option>
+                <option value="local">Brain Local Hybrid Engine (Offline)</option>
+              </select>
+
+              <label>OpenAI API Key & Model</label>
+              <div class="split-inputs">
+                <input type="password" id="cfgOpenaiKey" placeholder="sk-..." />
+                <input type="text" id="cfgOpenaiModel" placeholder="gpt-4o-mini" />
+              </div>
+
+              <label>OpenAI Base URL</label>
+              <input type="text" id="cfgOpenaiBaseUrl" placeholder="https://api.openai.com/v1" />
+
+              <label>Google Gemini API Key & Model</label>
+              <div class="split-inputs">
+                <input type="password" id="cfgGeminiKey" placeholder="AIza..." />
+                <input type="text" id="cfgGeminiModel" placeholder="gemini-2.5-flash" />
+              </div>
+
+              <label>Anthropic API Key & Model</label>
+              <div class="split-inputs">
+                <input type="password" id="cfgAnthropicKey" placeholder="sk-ant-..." />
+                <input type="text" id="cfgAnthropicModel" placeholder="claude-3-5-sonnet-latest" />
+              </div>
+
+              <label>Ollama Base URL & Model</label>
+              <div class="split-inputs">
+                <input type="text" id="cfgOllamaUrl" placeholder="http://localhost:11434/v1" />
+                <input type="text" id="cfgOllamaModel" placeholder="llama3.2" />
+              </div>
+
+              <label>Default Agent System Persona</label>
+              <textarea id="cfgSystemPrompt" rows="3"></textarea>
+
+              <button type="submit" class="btn-primary">Apply Runtime Configuration</button>
+              <div id="configSaveNotice" class="save-notice"></div>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3>Use Brain in Your Production App</h3>
+            <p class="small-muted">Drop-in Python SDK (<code>sdk/brain_client.py</code>) or standard HTTP/WebSocket calls:</p>
+
+            <label class="field-label">1. Python Production SDK</label>
+            <pre class="code-block">from sdk.brain_client import BrainClient
+
+brain = BrainClient(base_url="http://localhost:8000", api_key="your-key")
+
+# Full agent turn with memory + RAG + tool calling
+res = brain.chat(
+    message="Summarize our SLA and calculate 99.95% uptime in minutes/month",
+    user_id="customer_42",
+    session_id="ticket_901",
+)
+print(res["reply"])
+print("Tools used:", [t["tool_name"] for t in res["tool_calls"]])</pre>
+
+            <label class="field-label">2. cURL / REST Microservice Call</label>
+            <pre class="code-block">curl -X POST http://localhost:8000/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-production-key" \
+  -d '{
+    "message": "What do you remember about my stack?",
+    "user_id": "default_user",
+    "enable_tools": true,
+    "enable_rag": true,
+    "enable_memory": true
+  }'</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
