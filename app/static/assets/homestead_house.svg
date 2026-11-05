@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" width="240" height="220">
+  <defs>
+    <linearGradient id="roofGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="wallGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+    <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Ground Shadow -->
+  <ellipse cx="120" cy="192" rx="98" ry="20" fill="rgba(0,0,0,0.35)"/>
+  <!-- Cobblestone Foundation -->
+  <polygon points="35,160 120,195 205,160 120,125" fill="#64748b" stroke="#334155" stroke-width="2"/>
+  <polygon points="35,160 120,195 120,206 35,171" fill="#475569"/>
+  <polygon points="205,160 120,195 120,206 205,171" fill="#334155"/>
+  <!-- Left & Right Cottage Walls -->
+  <polygon points="48,95 120,128 120,190 48,158" fill="url(#wallGrad)" stroke="#92400e" stroke-width="3"/>
+  <polygon points="192,95 120,128 120,190 192,158" fill="#fde68a" stroke="#78350f" stroke-width="3"/>
+  <!-- Timber Cross-Bracing -->
+  <line x1="48" y1="125" x2="120" y2="158" stroke="#92400e" stroke-width="3"/>
+  <line x1="84" y1="112" x2="84" y2="174" stroke="#92400e" stroke-width="3"/>
+  <!-- Oak Arched Door -->
+  <polygon points="142,178 142,140 166,130 166,168" fill="#78350f" stroke="#451a03" stroke-width="2"/>
+  <circle cx="161" cy="152" r="2.2" fill="#facc15"/>
+  <!-- Glowing Paned Window + Flower Box -->
+  <polygon points="64,118 102,135 102,158 64,141" fill="url(#glassGrad)" stroke="#78350f" stroke-width="2.5"/>
+  <polygon points="61,142 105,160 102,167 58,149" fill="#b45309"/>
+  <circle cx="70" cy="144" r="4" fill="#f43f5e"/>
+  <circle cx="82" cy="149" r="4" fill="#facc15"/>
+  <circle cx="94" cy="154" r="4" fill="#ec4899"/>
+  <!-- Brick Chimney -->
+  <polygon points="155,35 178,44 178,96 155,87" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+  <!-- Gabled Roof + Exposed Construction Rafters -->
+  <polygon points="34,94 120,42 206,94 120,134" fill="url(#roofGrad)" stroke="#7c2d12" stroke-width="3"/>
+  <!-- Wooden Scaffolding on Left -->
+  <line x1="28" y1="85" x2="28" y2="172" stroke="#d97706" stroke-width="3.5"/>
+  <line x1="44" y1="92" x2="44" y2="178" stroke="#d97706" stroke-width="3.5"/>
+  <line x1="25" y1="115" x2="48" y2="122" stroke="#f59e0b" stroke-width="3"/>
+  <line x1="25" y1="142" x2="48" y2="149" stroke="#f59e0b" stroke-width="3"/>
+</svg>

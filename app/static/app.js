@@ -557,7 +557,12 @@ function renderWorld() {
   // Lush Homestead Meadow Base Terrain
   drawIsoBox(-440, -360, 880, 710, -14, 14, "#14532d", "#052e16", "#022c22", "#166534");
 
-  // Draw Each Homestead / Farm Plot & Props
+  // Cobblestone pathways, grass tufts & wildflowers
+  if (typeof drawTerrainDetails === "function") {
+    drawTerrainDetails(ctx, projectPoint, worldState.zoom, worldState.time);
+  }
+
+  // Draw Each Homestead / Farm Plot & Graphic Assets
   HOMESTEAD_PLOTS.forEach((plot) => {
     drawIsoBox(
       plot.x,
@@ -575,14 +580,32 @@ function renderWorld() {
     drawIsoBox(plot.x, plot.y, plot.w, 5, 3, 12, "#d97706", "#b45309", "#78350f");
     drawIsoBox(plot.x, plot.y, 5, plot.h, 3, 12, "#d97706", "#b45309", "#78350f");
 
-    drawPlotProps(plot, worldState.time);
+    if (typeof drawDetailedPlotGraphics === "function") {
+      drawDetailedPlotGraphics(ctx, projectPoint, drawIsoBox, plot, worldState.zoom, worldState.time);
+    } else {
+      drawPlotProps(plot, worldState.time);
+    }
   });
 
-  // Depth-sort Chibis
+  // Depth-sort Chibis and render with Illustrated Chibi Sprite Engine
   const sorted = [...worldState.chibiAgents].sort((a, b) => {
     return projectPoint(a.x, a.y, 0).depth - projectPoint(b.x, b.y, 0).depth;
   });
-  sorted.forEach((ag) => drawChibiAgent(ag, worldState.time));
+  sorted.forEach((ag) => {
+    if (typeof drawIllustratedChibi === "function") {
+      const hit = drawIllustratedChibi(
+        ctx,
+        projectPoint,
+        ag,
+        worldState.zoom,
+        worldState.time,
+        ag.id === worldState.selectedAgentId
+      );
+      if (hit) worldState.screenHitBoxes.push(hit);
+    } else {
+      drawChibiAgent(ag, worldState.time);
+    }
+  });
 }
 
 let lastTime = performance.now();
