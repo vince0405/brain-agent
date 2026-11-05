@@ -75,11 +75,20 @@ class Settings:
         self.rag_chunk_size: int = int(os.getenv("RAG_CHUNK_SIZE", "600"))
         self.rag_chunk_overlap: int = int(os.getenv("RAG_CHUNK_OVERLAP", "100"))
 
-        # Storage
+        # Storage & Supabase Integration
         self.data_dir: Path = Path(os.getenv("DATA_DIR", "./data"))
         self.database_path: Path = Path(os.getenv("DATABASE_PATH", "./data/brain.db"))
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self.supabase_project_ref: str = os.getenv(
+            "SUPABASE_PROJECT_REF", "yqvbwrhhqivnmmiuxbgz"
+        ).strip()
+        self.supabase_url: str = os.getenv(
+            "SUPABASE_URL", f"https://{self.supabase_project_ref}.supabase.co"
+        ).strip()
+        self.supabase_anon_key: str = os.getenv("SUPABASE_ANON_KEY", "").strip()
+        self.supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 
         self.system_prompt: str = os.getenv(
             "SYSTEM_PROMPT",

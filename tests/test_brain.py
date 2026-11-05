@@ -88,3 +88,35 @@ def test_end_to_end_chat_turn():
     assert any(tc["tool_name"] == "python_calculator" for tc in body["tool_calls"])
     assert "150" in body["reply"]
 
+
+def test_multi_agent_webapp_and_game_routing():
+    client = TestClient(app)
+
+    # 1. Auto-route a Web App + Supabase task
+    webapp_resp = client.post(
+        "/api/v1/chat",
+        json={
+            "message": "Build a SaaS dashboard web app with React frontend and Supabase RLS database schema.",
+            "user_id": "dev_user",
+        },
+    )
+    assert webapp_resp.status_code == 200
+    w_body = webapp_resp.json()
+    w_domains = {s["domain"] for s in w_body["active_specialists"]}
+    assert "webapp" in w_domains
+    assert any(tc["tool_name"] == "generate_webapp_blueprint" for tc in w_body["tool_calls"])
+
+    # 2. Auto-route a Game Development task
+    game_resp = client.post(
+        "/api/v1/chat",
+        json={
+            "message": "Make a 2D roguelike platformer game in HTML5 Canvas with sprite collision and physics.",
+            "user_id": "dev_user",
+        },
+    )
+    assert game_resp.status_code == 200
+    g_body = game_resp.json()
+    g_domains = {s["domain"] for s in g_body["active_specialists"]}
+    assert "game" in g_domains
+    assert any(tc["tool_name"] == "generate_game_blueprint" for tc in g_body["tool_calls"])
+

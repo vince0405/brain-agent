@@ -27,6 +27,10 @@
         <button class="nav-btn active" data-tab="chat">
           <span>💬</span> Agent Chat Studio
         </button>
+        <button class="nav-btn" data-tab="specialists">
+          <span>🤖</span> Specialist Agents
+          <span class="badge" id="navSpecCount">8</span>
+        </button>
         <button class="nav-btn" data-tab="memory">
           <span>🧬</span> Long-Term Memory
           <span class="badge" id="navMemoryCount">0</span>
@@ -40,7 +44,7 @@
           <span class="badge" id="navToolCount">0</span>
         </button>
         <button class="nav-btn" data-tab="settings">
-          <span>⚡</span> LLM & Production API
+          <span>⚡</span> LLM & Supabase API
         </button>
       </nav>
 
@@ -67,6 +71,18 @@
             <p class="subtitle">Multi-step tool calling, long-term episodic memory, and hybrid RAG</p>
           </div>
           <div class="header-controls">
+            <select id="specialistSelect" class="input-compact" style="width: 240px;" title="Select Specialist Agent or Multi-Agent Team">
+              <option value="auto_router">🧠 Auto-Route (Brain Orchestrator)</option>
+              <option value="mode:webapp_team">🌐 Full Web App Team (3 Agents)</option>
+              <option value="mode:game_team">🎮 Full Game Studio Team (3 Agents)</option>
+              <option value="webapp_architect">🏗️ Web App System Architect</option>
+              <option value="frontend_ui_agent">🎨 Frontend & UI/UX Specialist</option>
+              <option value="backend_supabase_agent">⚡ Backend & Supabase Specialist</option>
+              <option value="game_designer">🎮 Game Designer & Mechanics</option>
+              <option value="game_engine_coder">🕹️ Game Engine & Physics Coder</option>
+              <option value="game_world_narrative">🗺️ Game World & Narrative Director</option>
+              <option value="qa_security_agent">🛡️ QA, Performance & Security</option>
+            </select>
             <label class="toggle-chip">
               <input type="checkbox" id="toggleTools" checked />
               <span>Tools</span>
@@ -85,20 +101,20 @@
 
         <div class="chat-messages" id="chatMessages">
           <div class="welcome-card">
-            <h2>Welcome to your Production Brain Agent</h2>
-            <p>Every message automatically recalls user memories, searches your RAG knowledge base, and executes tools when needed. Try one of these prompts:</p>
+            <h2>Welcome to your Multi-Agent Production Brain</h2>
+            <p>Brain automatically routes tasks to specialized <strong>Web App</strong> or <strong>Game Development</strong> agents (or coordinates a full multi-agent team). Try one of these prompts:</p>
             <div class="quick-prompts">
-              <button class="prompt-chip" data-prompt="Remember that my name is Alex and our production stack uses FastAPI, PostgreSQL, and Redis.">
-                🧬 Store a long-term memory
+              <button class="prompt-chip" data-prompt="Build a SaaS task manager web app with Next.js frontend, FastAPI backend, and Supabase Auth + RLS tables.">
+                🌐 Architect a Web App + Supabase Schema
+              </button>
+              <button class="prompt-chip" data-prompt="Make a 2D cyberpunk action roguelike game in HTML5 Canvas with player dash physics, AABB collision, and enemy wave spawning.">
+                🎮 Build a 2D Game Loop & Mechanics
+              </button>
+              <button class="prompt-chip" data-prompt="Remember that my project is connected to Supabase ref yqvbwrhhqivnmmiuxbgz and uses TypeScript + FastAPI.">
+                🧬 Store Project Memory
               </button>
               <button class="prompt-chip" data-prompt="Calculate sqrt(1024) * 15 + mean([120, 340, 500])">
-                🧮 Run math calculator tool
-              </button>
-              <button class="prompt-chip" data-prompt="What are the production integration endpoints and architecture of Brain?">
-                📚 Query RAG knowledge base
-              </button>
-              <button class="prompt-chip" data-prompt="What time is it right now and what are the database stats?">
-                🕒 Check system clock & telemetry
+                🧮 Run Math / Balance Calculator
               </button>
             </div>
           </div>
@@ -112,6 +128,61 @@
           ></textarea>
           <button type="submit" class="btn-primary" id="sendBtn">Send ➔</button>
         </form>
+      </section>
+
+      <!-- TAB: SPECIALIST AGENTS HUB -->
+      <section class="tab-pane" id="tab-specialists">
+        <header class="pane-header">
+          <div>
+            <h1>Specialist Sub-Agents (Web App & Game Studio)</h1>
+            <p class="subtitle">Brain routes tasks to specialized sub-agents based on whether you are making a Web App or a Game</p>
+          </div>
+        </header>
+
+        <div class="pane-body two-col">
+          <div class="card">
+            <h3>Create Custom Specialist Agent</h3>
+            <form id="createSpecialistForm" class="stack-form">
+              <label>Agent ID (slug)</label>
+              <input type="text" id="specId" placeholder="e.g., shader_artist" required />
+
+              <label>Agent Name & Icon</label>
+              <div class="split-inputs">
+                <input type="text" id="specName" placeholder="WebGL Shader Artist" required />
+                <input type="text" id="specIcon" value="✨" />
+              </div>
+
+              <label>Role Title</label>
+              <input type="text" id="specRole" placeholder="GLSL & Post-Processing Specialist" required />
+
+              <label>Domain</label>
+              <select id="specDomain">
+                <option value="webapp">Web App Development (webapp)</option>
+                <option value="game">Game Development (game)</option>
+                <option value="core">Core / QA / DevOps (core)</option>
+              </select>
+
+              <label>Auto-Router Trigger Keywords (comma-separated)</label>
+              <input type="text" id="specKeywords" placeholder="shader, glsl, bloom, particle, webgl" />
+
+              <label>Description</label>
+              <input type="text" id="specDesc" placeholder="Writes custom GLSL vertex/fragment shaders..." required />
+
+              <label>Specialist System Prompt</label>
+              <textarea id="specPrompt" rows="4" placeholder="You are the WebGL Shader Artist inside Brain..." required></textarea>
+
+              <button type="submit" class="btn-primary">Register Specialist Agent</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <h3>Active Specialist Fleet</h3>
+              <button class="btn-xs" id="refreshSpecialistsBtn">↻ Refresh</button>
+            </div>
+            <div id="specialistsList" class="item-list"></div>
+          </div>
+        </div>
       </section>
 
       <!-- TAB 2: LONG-TERM MEMORY -->

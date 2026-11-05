@@ -23,12 +23,28 @@ class RetrievedContextItem(BaseModel):
     score: float
 
 
+class ActiveSpecialistBadge(BaseModel):
+    id: str
+    name: str
+    role: str
+    domain: str
+    icon: str
+
+
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="User input message to the agent")
     session_id: Optional[str] = Field(
         default=None, description="Conversation session ID (auto-created if omitted)"
     )
     user_id: str = Field(default="default_user", description="Unique user or tenant identifier")
+    specialist_id: Optional[str] = Field(
+        default="auto_router",
+        description="Target specialist agent ID ('auto_router', 'webapp_architect', 'frontend_ui_agent', 'backend_supabase_agent', 'game_designer', 'game_engine_coder', 'game_world_narrative', 'qa_security_agent')",
+    )
+    project_mode: Optional[str] = Field(
+        default=None,
+        description="Optional team preset ('webapp_team' or 'game_team')",
+    )
     system_prompt_override: Optional[str] = Field(
         default=None, description="Optional custom system prompt for this request"
     )
@@ -53,11 +69,24 @@ class ChatResponse(BaseModel):
     user_id: str
     provider: str
     model: str
+    active_specialists: List[ActiveSpecialistBadge] = Field(default_factory=list)
     tool_calls: List[ToolCallStep] = Field(default_factory=list)
     retrieved_context: List[RetrievedContextItem] = Field(default_factory=list)
     memories_saved: List[str] = Field(default_factory=list)
     latency_ms: float
     usage: Dict[str, int] = Field(default_factory=dict)
+
+
+class SpecialistCreateRequest(BaseModel):
+    id: str = Field(..., min_length=2, description="Unique identifier e.g. 'shader_artist'")
+    name: str = Field(..., min_length=2)
+    role: str = Field(..., min_length=2)
+    domain: str = Field(default="webapp", description="'webapp' | 'game' | 'core' | 'custom'")
+    icon: str = Field(default="🤖")
+    description: str = Field(..., min_length=5)
+    system_prompt: str = Field(..., min_length=10)
+    keywords: List[str] = Field(default_factory=list)
+    preferred_tools: List[str] = Field(default_factory=list)
 
 
 class MemoryCreateRequest(BaseModel):

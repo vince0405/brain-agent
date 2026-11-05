@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.agent.orchestrator import brain_agent
+from app.agent.specialists import specialist_registry
 from app.config import settings
 from app.database import db
 from app.memory.store import memory_store, session_store
@@ -29,6 +30,7 @@ from app.schemas import (
     KnowledgeSearchRequest,
     MemoryCreateRequest,
     RuntimeConfigUpdateRequest,
+    SpecialistCreateRequest,
 )
 from app.tools.registry import tool_registry
 
@@ -172,6 +174,12 @@ async def system_status() -> Dict[str, Any]:
             "chunks": chunks_count,
             "avg_latency_ms": round(float(avg_latency), 2),
         },
+        "supabase": {
+            "project_ref": settings.supabase_project_ref,
+            "url": settings.supabase_url,
+            "configured": bool(settings.supabase_anon_key or settings.supabase_service_role_key),
+        },
+        "specialists_count": len(specialist_registry.list_agents()),
         "tools_registered": len(tool_registry.list_tools()),
     }
 
@@ -388,6 +396,41 @@ async def search_knowledge(req: KnowledgeSearchRequest) -> Dict[str, Any]:
 async def delete_knowledge_document(doc_id: str) -> Dict[str, Any]:
     deleted = knowledge_base.delete_document(doc_id=doc_id)
     return {"deleted": deleted, "document_id": doc_id}
+
+
+# ============================================================================
+# Specialist Sub-Agents (Web App & Game Development) Endpoints
+# ============================================================================
+@app.get("/api/v1/specialists", dependencies=[Depends(verify_api_key)], tags=["Specialist Agents"])
+async def list_specialists(domain: Optional[str] = None) -> Dict[str, Any]:
+    agents = specialist_registry.list_agents(domain=domain)
+    return {"count": len(agents), "specialists": agents}
+
+
+@app.post("/api/v1/specialists", dependencies=[Depends(verify_api_key)], tags=["Specialist Agents"])
+async def create_specialist(req: SpecialistCreateRequest) -> Dict[str, Any]:
+    created = specialist_registry.create_custom_agent(
+        agent_id=req.id,
+        name=req.name,
+        role=req.role,
+        domain=req.domain,
+        icon=req.icon,
+        description=req.description,
+        system_prompt=req.system_prompt,
+        keywords=req.keywords,
+        preferred_tools=req.preferred_tools,
+    )
+    return {"specialist": created}
+
+
+@app.delete(
+    "/api/v1/specialists/{agent_id}",
+    dependencies=[Depends(verify_api_key)],
+    tags=["Specialist Agents"],
+)
+async def delete_specialist(agent_id: str) -> Dict[str, Any]:
+    deleted = specialist_registry.delete_custom_agent(agent_id=agent_id)
+    return {"deleted": deleted, "agent_id": agent_id}
 
 
 # ============================================================================

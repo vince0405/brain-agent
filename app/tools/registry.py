@@ -299,6 +299,77 @@ def tool_system_clock() -> Dict[str, Any]:
     }
 
 
+def tool_generate_webapp_blueprint(
+    app_name: str,
+    features: str = "authentication, dashboard, real-time CRUD",
+    stack: str = "Next.js + FastAPI + Supabase",
+) -> Dict[str, Any]:
+    """Generate a full-stack Web App blueprint (Architecture, Supabase SQL schema + RLS, and API routes)."""
+    slug = re.sub(r"[^a-z0-9_]", "_", app_name.lower().strip()).strip("_") or "webapp"
+    return {
+        "app_name": app_name,
+        "stack": stack,
+        "features": features,
+        "architecture": {
+            "frontend": f"src/app/({slug})/page.tsx, src/components/{slug}/Dashboard.tsx",
+            "backend": f"app/routers/{slug}.py, app/services/{slug}_service.py",
+            "database": f"supabase/migrations/create_{slug}_tables.sql (Supabase Project: yqvbwrhhqivnmmiuxbgz)",
+        },
+        "supabase_sql_snippet": (
+            f"create table if not exists public.{slug}_items (\n"
+            f"  id uuid primary key default gen_random_uuid(),\n"
+            f"  user_id uuid not null references auth.users(id) on delete cascade,\n"
+            f"  title text not null,\n"
+            f"  status text not null default 'active',\n"
+            f"  payload jsonb not null default '{{}}'::jsonb,\n"
+            f"  created_at timestamptz not null default now()\n"
+            f");\n"
+            f"alter table public.{slug}_items enable row level security;\n"
+            f"create policy \"Users manage own {slug}_items\" on public.{slug}_items\n"
+            f"  for all using (auth.uid() = user_id);"
+        ),
+    }
+
+
+def tool_generate_game_blueprint(
+    game_title: str,
+    genre: str = "2D Action / Arcade",
+    engine: str = "HTML5 Canvas / Phaser / Godot",
+) -> Dict[str, Any]:
+    """Generate a Game Design Blueprint (Core Loop, ECS Entities, Physics Math, and Runnable Game Loop)."""
+    return {
+        "game_title": game_title,
+        "genre": genre,
+        "engine": engine,
+        "core_loop": [
+            "1. Input & Intent (WASD / Arrow / Gamepad polling)",
+            "2. Fixed-step Physics & Collision Resolution (dt = 1/60s, AABB & Circle checks)",
+            "3. Entity State & AI Behaviour Tree Tick",
+            "4. Render Pass (Tilemap -> Sprites -> Particles -> HUD Overlay)",
+        ],
+        "starter_game_loop_js": (
+            "class GameEngine {\n"
+            "  constructor(canvas) {\n"
+            "    this.ctx = canvas.getContext('2d');\n"
+            "    this.player = { x: 120, y: 120, vx: 0, vy: 0, speed: 240, hp: 100 };\n"
+            "    this.lastTime = performance.now();\n"
+            "  }\n"
+            "  update(dt, keys) {\n"
+            "    const dx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);\n"
+            "    const dy = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);\n"
+            "    this.player.x += dx * this.player.speed * dt;\n"
+            "    this.player.y += dy * this.player.speed * dt;\n"
+            "  }\n"
+            "  render() {\n"
+            "    this.ctx.clearRect(0, 0, 800, 600);\n"
+            "    this.ctx.fillStyle = '#6366f1';\n"
+            "    this.ctx.fillRect(this.player.x - 16, this.player.y - 16, 32, 32);\n"
+            "  }\n"
+            "}"
+        ),
+    }
+
+
 def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
 
@@ -402,6 +473,36 @@ def build_default_registry() -> ToolRegistry:
             "properties": {},
         },
         handler=tool_system_clock,
+    )
+
+    registry.register(
+        name="generate_webapp_blueprint",
+        description="Generate a full-stack Web App architecture, Supabase SQL migration + RLS policy, and component structure.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "app_name": {"type": "string", "description": "Name or topic of the web application"},
+                "features": {"type": "string", "description": "Key features to include", "default": "authentication, dashboard, CRUD"},
+                "stack": {"type": "string", "description": "Tech stack", "default": "Next.js + FastAPI + Supabase"},
+            },
+            "required": ["app_name"],
+        },
+        handler=tool_generate_webapp_blueprint,
+    )
+
+    registry.register(
+        name="generate_game_blueprint",
+        description="Generate a Game Design Document (GDD), ECS entity breakdown, and playable HTML5 Canvas / JS game loop.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "game_title": {"type": "string", "description": "Title or concept of the game"},
+                "genre": {"type": "string", "description": "Game genre (e.g. 2D Platformer, Roguelike, RPG, Shooter)", "default": "2D Action / Arcade"},
+                "engine": {"type": "string", "description": "Target game engine", "default": "HTML5 Canvas / Phaser / Godot"},
+            },
+            "required": ["game_title"],
+        },
+        handler=tool_generate_game_blueprint,
     )
 
     return registry

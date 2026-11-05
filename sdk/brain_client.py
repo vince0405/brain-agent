@@ -63,6 +63,8 @@ class BrainClient:
         message: str,
         user_id: str = "default_user",
         session_id: Optional[str] = None,
+        specialist_id: str = "auto_router",
+        project_mode: Optional[str] = None,
         enable_tools: bool = True,
         enable_rag: bool = True,
         enable_memory: bool = True,
@@ -70,11 +72,13 @@ class BrainClient:
         model_override: Optional[str] = None,
         system_prompt_override: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Run a full synchronous agent turn and return reply, tool calls, and retrieved context."""
+        """Run a full synchronous agent turn and return reply, routed specialists, tool calls, and retrieved context."""
         payload = {
             "message": message,
             "user_id": user_id,
             "session_id": session_id,
+            "specialist_id": specialist_id,
+            "project_mode": project_mode,
             "enable_tools": enable_tools,
             "enable_rag": enable_rag,
             "enable_memory": enable_memory,

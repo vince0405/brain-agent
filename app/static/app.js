@@ -14,6 +14,7 @@ document.querySelectorAll(".nav-btn").forEach((btn) => {
     const target = btn.getAttribute("data-tab");
     document.getElementById(`tab-${target}`).classList.add("active");
 
+    if (target === "specialists") loadSpecialists();
     if (target === "memory") loadMemories();
     if (target === "knowledge") loadDocuments();
     if (target === "tools") loadTools();
@@ -42,6 +43,9 @@ async function refreshStatus() {
     document.getElementById("navMemoryCount").textContent = status.stats.memories;
     document.getElementById("navDocCount").textContent = status.stats.documents;
     document.getElementById("navToolCount").textContent = status.tools_registered;
+    if (status.specialists_count !== undefined) {
+      document.getElementById("navSpecCount").textContent = status.specialists_count;
+    }
   } catch (err) {
     document.getElementById("activeProviderLabel").textContent = "Offline / Error";
   }
@@ -165,7 +169,10 @@ function appendMessageBubble(role, content, details = {}) {
   if (role === "assistant" && details.meta && details.meta.provider) {
     const meta = document.createElement("div");
     meta.className = "msg-meta";
-    meta.innerHTML = `<span>Provider: <strong>${escapeHtml(details.meta.provider)}</strong> (${escapeHtml(details.meta.model || "")})</span> · <span>Latency: <strong>${details.meta.latency_ms || 0} ms</strong></span>`;
+    const specBadge = details.meta.specialists
+      ? `<span>Routed to: <strong>${escapeHtml(details.meta.specialists)}</strong></span> · `
+      : "";
+    meta.innerHTML = `${specBadge}<span>Provider: <strong>${escapeHtml(details.meta.provider)}</strong> (${escapeHtml(details.meta.model || "")})</span> · <span>Latency: <strong>${details.meta.latency_ms || 0} ms</strong></span>`;
     row.appendChild(meta);
   }
 
@@ -182,6 +189,14 @@ async function sendChatMessage(messageText) {
   const enableTools = document.getElementById("toggleTools").checked;
   const enableRag = document.getElementById("toggleRag").checked;
   const enableMemory = document.getElementById("toggleMemory").checked;
+  const specChoice = document.getElementById("specialistSelect").value;
+  let specialistId = "auto_router";
+  let projectMode = null;
+  if (specChoice.startsWith("mode:")) {
+    projectMode = specChoice.slice(5);
+  } else {
+    specialistId = specChoice;
+  }
 
   appendMessageBubble("user", text);
   const input = document.getElementById("chatInput");
@@ -195,6 +210,8 @@ async function sendChatMessage(messageText) {
       message: text,
       session_id: state.currentSessionId,
       user_id: userId,
+      specialist_id: specialistId,
+      project_mode: projectMode,
       enable_tools: enableTools,
       enable_rag: enableRag,
       enable_memory: enableMemory,
@@ -210,10 +227,12 @@ async function sendChatMessage(messageText) {
       toolCalls: res.tool_calls,
       retrievedContext: res.retrieved_context,
       memoriesSaved: res.memories_saved,
+      activeSpecialists: res.active_specialists || [],
       meta: {
         provider: res.provider,
         model: res.model,
         latency_ms: res.latency_ms,
+        specialists: (res.active_specialists || []).map((s) => `${s.icon} ${s.name}`).join(" + "),
       },
     });
 
@@ -245,6 +264,83 @@ document.addEventListener("click", (e) => {
     sendChatMessage(chip.getAttribute("data-prompt"));
   }
 });
+
+// ============================================================================
+// Specialist Agents Tab (Web App & Game Studio)
+// ============================================================================
+async function loadSpecialists() {
+  const data = await apiFetch("/api/v1/specialists");
+  const list = document.getElementById("specialistsList");
+  list.innerHTML = "";
+
+  data.specialists.forEach((sp) => {
+    const card = document.createElement("div");
+    card.className = "list-card";
+    const kwHtml = (sp.keywords || [])
+      .slice(0, 8)
+      .map((k) => `<span class="tag-pill">${escapeHtml(k)}</span>`)
+      .join("");
+    const delBtn = sp.custom
+      ? `<button class="btn-danger-xs" data-del-id="${escapeHtml(sp.id)}">Delete</button>`
+      : `<span class="tag-pill">Built-in</span>`;
+
+    card.innerHTML = `
+      <div>
+        <div class="list-card-title">
+          ${escapeHtml(sp.icon)} ${escapeHtml(sp.name)}
+          <span class="tag-pill">${escapeHtml(sp.domain.toUpperCase())}</span>
+          <span class="tag-pill">id: ${escapeHtml(sp.id)}</span>
+        </div>
+        <div class="list-card-sub" style="color: #a5b4fc; margin-bottom: 4px;">${escapeHtml(sp.role)}</div>
+        <div class="list-card-sub">${escapeHtml(sp.description)}</div>
+        <div style="margin-top: 6px;">${kwHtml}</div>
+      </div>
+      ${delBtn}
+    `;
+    const btn = card.querySelector("button[data-del-id]");
+    if (btn) {
+      btn.addEventListener("click", async () => {
+        await apiFetch(`/api/v1/specialists/${sp.id}`, { method: "DELETE" });
+        await loadSpecialists();
+        await refreshStatus();
+      });
+    }
+    list.appendChild(card);
+  });
+}
+
+document.getElementById("createSpecialistForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const keywords = document
+    .getElementById("specKeywords")
+    .value.split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+
+  await apiFetch("/api/v1/specialists", {
+    method: "POST",
+    body: JSON.stringify({
+      id: document.getElementById("specId").value.trim(),
+      name: document.getElementById("specName").value.trim(),
+      icon: document.getElementById("specIcon").value.trim() || "🤖",
+      role: document.getElementById("specRole").value.trim(),
+      domain: document.getElementById("specDomain").value,
+      keywords,
+      description: document.getElementById("specDesc").value.trim(),
+      system_prompt: document.getElementById("specPrompt").value.trim(),
+      preferred_tools: ["search_knowledge_base", "save_memory", "recall_memory"],
+    }),
+  });
+
+  document.getElementById("specId").value = "";
+  document.getElementById("specName").value = "";
+  document.getElementById("specDesc").value = "";
+  document.getElementById("specPrompt").value = "";
+  await loadSpecialists();
+  await refreshStatus();
+});
+
+document.getElementById("refreshSpecialistsBtn").addEventListener("click", loadSpecialists);
 
 // ============================================================================
 // Long-Term Memory Tab

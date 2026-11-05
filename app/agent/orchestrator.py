@@ -10,11 +10,18 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
+from app.agent.specialists import specialist_registry
 from app.config import settings
 from app.database import db
 from app.memory.store import memory_store, session_store
 from app.rag.knowledge_base import knowledge_base
-from app.schemas import ChatRequest, ChatResponse, RetrievedContextItem, ToolCallStep
+from app.schemas import (
+    ActiveSpecialistBadge,
+    ChatRequest,
+    ChatResponse,
+    RetrievedContextItem,
+    ToolCallStep,
+)
 from app.tools.registry import ToolRegistry, tool_registry
 
 
@@ -57,6 +64,7 @@ class BrainAgent:
     def _build_augmented_system_prompt(
         self,
         base_prompt: str,
+        active_specialists: List[Dict[str, Any]],
         recalled_memories: List[Dict[str, Any]],
         rag_hits: List[Dict[str, Any]],
         user_id: str,
@@ -64,6 +72,27 @@ class BrainAgent:
         sections = [base_prompt.strip()]
         sections.append(f"Current UTC Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
         sections.append(f"Active User ID: {user_id}")
+        sections.append(f"Linked Supabase Project Ref: {settings.supabase_project_ref} ({settings.supabase_url})")
+
+        if active_specialists:
+            spec_blocks = []
+            for sp in active_specialists:
+                spec_blocks.append(
+                    f"### {sp['icon']} {sp['name']} ({sp['role']} | domain={sp['domain']})\n"
+                    f"Instructions: {sp['system_prompt']}"
+                )
+            if len(active_specialists) == 1:
+                sections.append(
+                    "## Active Specialist Agent Persona\n"
+                    "Adopt the following specialist role for this task:\n\n"
+                    + "\n\n".join(spec_blocks)
+                )
+            else:
+                sections.append(
+                    "## Multi-Agent Specialist Team Mode\n"
+                    "Coordinate the following specialist agents in your response, clearly labeling each specialist's contribution:\n\n"
+                    + "\n\n".join(spec_blocks)
+                )
 
         if recalled_memories:
             mem_lines = [
@@ -378,6 +407,7 @@ class BrainAgent:
         self,
         user_message: str,
         user_id: str,
+        active_specialists: List[Dict[str, Any]],
         recalled_memories: List[Dict[str, Any]],
         rag_hits: List[Dict[str, Any]],
         memories_saved: List[str],
@@ -389,6 +419,7 @@ class BrainAgent:
         """
         tool_steps: List[ToolCallStep] = []
         msg_lower = user_message.lower().strip()
+        domains = {sp["domain"] for sp in active_specialists}
 
         # 1. Check for math / calculation intent
         if enable_tools:
@@ -452,7 +483,41 @@ class BrainAgent:
                     )
                 )
 
-            # 4. If user asks about knowledge base / docs, record a tool call trace
+            # 4. Web App Specialist Blueprint Tool
+            if "webapp" in domains:
+                res = self.registry.execute(
+                    "generate_webapp_blueprint",
+                    {"app_name": user_message[:50], "features": user_message[:120]},
+                )
+                tool_steps.append(
+                    ToolCallStep(
+                        step=len(tool_steps) + 1,
+                        tool_name="generate_webapp_blueprint",
+                        arguments={"app_name": user_message[:50], "features": user_message[:120]},
+                        output=res["output"],
+                        duration_ms=res["duration_ms"],
+                        success=res["success"],
+                    )
+                )
+
+            # 5. Game Dev Specialist Blueprint Tool
+            if "game" in domains:
+                res = self.registry.execute(
+                    "generate_game_blueprint",
+                    {"game_title": user_message[:50], "genre": "2D / 3D Interactive Game"},
+                )
+                tool_steps.append(
+                    ToolCallStep(
+                        step=len(tool_steps) + 1,
+                        tool_name="generate_game_blueprint",
+                        arguments={"game_title": user_message[:50], "genre": "2D / 3D Interactive Game"},
+                        output=res["output"],
+                        duration_ms=res["duration_ms"],
+                        success=res["success"],
+                    )
+                )
+
+            # 6. If user asks about knowledge base / docs, record a tool call trace
             if rag_hits and any(
                 kw in msg_lower
                 for kw in ("search", "docs", "documentation", "architecture", "endpoint", "api", "knowledge", "how do i", "how does", "what is")
@@ -471,6 +536,12 @@ class BrainAgent:
 
         # Synthesize structured response
         parts: List[str] = []
+
+        if active_specialists:
+            header_badges = " + ".join(
+                f"{sp['icon']} **{sp['name']}** (*{sp['role']}*)" for sp in active_specialists
+            )
+            parts.append(f"### Routed Specialist Agent(s): {header_badges}")
 
         if memories_saved:
             parts.append(
@@ -498,6 +569,26 @@ class BrainAgent:
                 parts.append(
                     f"**SQL Analytics Result ({data['row_count']} rows):**\n```json\n"
                     f"{json.dumps(data['rows'], indent=2)}\n```"
+                )
+            elif step.tool_name == "generate_webapp_blueprint" and step.success:
+                data = json.loads(step.output)
+                arch = data["architecture"]
+                parts.append(
+                    f"#### 🏗️ Web App Architecture & Supabase Blueprint\n"
+                    f"- **Stack:** `{data['stack']}`\n"
+                    f"- **Frontend Layer:** `{arch['frontend']}`\n"
+                    f"- **Backend API Layer:** `{arch['backend']}`\n"
+                    f"- **Supabase Migration:** `{arch['database']}`\n\n"
+                    f"```sql\n{data['supabase_sql_snippet']}\n```"
+                )
+            elif step.tool_name == "generate_game_blueprint" and step.success:
+                data = json.loads(step.output)
+                loop_lines = "\n".join(f"- {item}" for item in data["core_loop"])
+                parts.append(
+                    f"#### 🎮 Game Design & Engine Blueprint\n"
+                    f"**Core 60FPS Execution Loop:**\n{loop_lines}\n\n"
+                    f"**Starter Engine Loop (`JavaScript / HTML5 Canvas`):**\n"
+                    f"```javascript\n{data['starter_game_loop_js']}\n```"
                 )
 
         # Check if user is asking about themselves or their remembered facts
@@ -603,16 +694,34 @@ class BrainAgent:
                 )
             )
 
-        # 4. Assemble system prompt
+        # 4. Route task to Specialist Agent(s) (Web App / Game Dev / Core)
+        active_specialists = specialist_registry.route_task(
+            message=req.message,
+            requested_agent_id=req.specialist_id,
+            project_mode=req.project_mode,
+        )
+        specialist_badges = [
+            ActiveSpecialistBadge(
+                id=sp["id"],
+                name=sp["name"],
+                role=sp["role"],
+                domain=sp["domain"],
+                icon=sp["icon"],
+            )
+            for sp in active_specialists
+        ]
+
+        # 5. Assemble system prompt with specialist personas
         base_prompt = req.system_prompt_override or settings.system_prompt
         augmented_system_prompt = self._build_augmented_system_prompt(
             base_prompt=base_prompt,
+            active_specialists=active_specialists,
             recalled_memories=recalled_memories,
             rag_hits=rag_hits,
             user_id=req.user_id,
         )
 
-        # 5. Execute LLM + Tool-Calling loop (with automatic fallback to local engine on network/key errors)
+        # 6. Execute LLM + Tool-Calling loop (with automatic fallback to local engine on network/key errors)
         provider, model = self._resolve_provider_and_model(req)
         try:
             if provider == "openai":
@@ -661,6 +770,7 @@ class BrainAgent:
                 reply, tool_steps, usage = self._run_local_hybrid_engine(
                     user_message=req.message,
                     user_id=req.user_id,
+                    active_specialists=active_specialists,
                     recalled_memories=recalled_memories,
                     rag_hits=rag_hits,
                     memories_saved=memories_saved,
@@ -671,6 +781,7 @@ class BrainAgent:
             fallback_reply, tool_steps, usage = self._run_local_hybrid_engine(
                 user_message=req.message,
                 user_id=req.user_id,
+                active_specialists=active_specialists,
                 recalled_memories=recalled_memories,
                 rag_hits=rag_hits,
                 memories_saved=memories_saved,
@@ -685,7 +796,7 @@ class BrainAgent:
 
         latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
-        # 6. Persist conversation turn & telemetry
+        # 7. Persist conversation turn & telemetry
         session_store.add_message(
             session_id=session_id,
             role="user",
@@ -697,7 +808,12 @@ class BrainAgent:
             role="assistant",
             content=reply,
             tool_calls=[t.model_dump() for t in tool_steps],
-            metadata={"provider": provider, "model": model, "latency_ms": latency_ms},
+            metadata={
+                "provider": provider,
+                "model": model,
+                "latency_ms": latency_ms,
+                "active_specialists": [b.model_dump() for b in specialist_badges],
+            },
         )
 
         with db.connection() as conn:
@@ -724,6 +840,7 @@ class BrainAgent:
             user_id=req.user_id,
             provider=provider,
             model=model,
+            active_specialists=specialist_badges,
             tool_calls=tool_steps,
             retrieved_context=retrieved_context,
             memories_saved=memories_saved,
