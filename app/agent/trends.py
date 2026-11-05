@@ -224,3 +224,4 @@ class MonthlyTrendLearner:
 
 
 trend_learner = MonthlyTrendLearner()
+
